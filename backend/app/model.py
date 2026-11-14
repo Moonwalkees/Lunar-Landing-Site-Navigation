@@ -19,6 +19,6 @@ class BatteryResult:
 
 @dataclass(frozen=True)
 class CommsMetrics:
-    current_clearance_deg: float
+    current_clearance_radians: float
     percent_visible: float
     longest_blackout_hours: float
