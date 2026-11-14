@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import SiteForm from "./components/SiteForm";
 import MetricCards from "./components/MetricCards";
-import Panorama from "./components/Panorama";
 import TerrainView from "./components/TerrainView";
 import TimeSeries from "./components/TimeSeries";
 import Compare, { MAX_COMPARE } from "./components/Compare";
 import { analyze as requestAnalysis, getSites } from "./api/client";
 import { FALLBACK_SITE, defaultSite } from "./sites";
 import { EMPTY_METRICS, type Analysis, type Metrics, type PinnedSite, type Preset, type SiteInput } from "./types";
+
+// Plotly is most of the bundle, so the panorama loads separately and the rest of the page doesn't wait for it.
+const Panorama = lazy(() => import("./components/Panorama"));
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -103,7 +105,9 @@ export default function App() {
         </aside>
         <main>
           <MetricCards metrics={metrics} />
-          <Panorama timeIndex={index} />
+          <Suspense fallback={<section className="panel"><h2>Horizon panorama</h2><p className="muted">Loading chart…</p></section>}>
+            <Panorama analysis={tracks} timeIndex={index} />
+          </Suspense>
           <TerrainView
             lat={site.lat}
             lon={site.lon}
