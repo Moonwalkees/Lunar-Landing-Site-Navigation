@@ -1,7 +1,7 @@
 # BUG-001 Panorama shows an out-of-range scrubber index after shrinking the window
 
-Status: open
-Owner:
+Status: done
+Owner: Aiken
 Severity: low
 Affects: frontend / scrubber (panorama ↔ time series link)
 
@@ -22,3 +22,20 @@ The clamp `Math.min(timeIndex, maxIndex)` is applied inline for one child only; 
 
 ## File
 `frontend/src/App.tsx:58`
+
+Note: done. `App.tsx` clamps the index once and passes the same value to every panel.
+
+## Solution
+**Chosen:** `frontend/src/App.tsx` clamps the time index to the current maximum once (`index`) and passes that value to every panel.
+
+**Strengths**
+- Every panel gets the same valid index, whatever the window was changed to.
+
+**Limitations**
+- The stored index is not reset, so widening the window again returns to the old position.
+
+**Alternatives considered**
+| Option | Why not chosen | Trade-off vs chosen |
+|---|---|---|
+| Clamp inside each panel | Easy to miss one | No change to `App.tsx` |
+| Reset the index in an effect when the window changes | An extra render and the position is lost | Stored state is always valid |
