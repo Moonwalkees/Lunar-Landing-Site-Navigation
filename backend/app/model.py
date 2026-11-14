@@ -15,3 +15,10 @@ class BatteryResult:
     charge_wh: NDArray[np.float64]
     minimum_wh: float
     survives: bool
+
+
+@dataclass(frozen=True)
+class CommsMetrics:
+    current_clearance_radians: float
+    percent_visible: float
+    longest_blackout_hours: float
