@@ -1,0 +1,65 @@
+import type { SiteInput } from "../types";
+import { PRESETS } from "../sites";
+
+interface Props {
+  site: SiteInput;
+  onChange: (site: SiteInput) => void;
+  onAnalyze: () => void;
+  onAddToCompare: () => void;
+  canAdd: boolean;
+}
+
+export default function SiteForm({ site, onChange, onAnalyze, onAddToCompare, canAdd }: Props) {
+  const set = <K extends keyof SiteInput>(key: K, value: SiteInput[K]) =>
+    onChange({ ...site, [key]: value });
+
+  const pickPreset = (name: string) => {
+    const p = PRESETS.find((x) => x.name === name);
+    if (p) onChange({ ...site, name: p.name, lat: p.lat, lon: p.lon });
+  };
+
+  return (
+    <section className="panel">
+      <h2>Site & dates</h2>
+      <div className="form">
+        <label>
+          Site
+          <select value={site.name} onChange={(e) => pickPreset(e.target.value)}>
+            {PRESETS.map((p) => (
+              <option key={p.name}>{p.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Lat (°)
+          <input type="number" step="0.01" value={site.lat}
+            onChange={(e) => onChange({ ...site, name: "Custom", lat: Number(e.target.value) })} />
+        </label>
+        <label>
+          Lon (°E)
+          <input type="number" step="0.01" value={site.lon}
+            onChange={(e) => onChange({ ...site, name: "Custom", lon: Number(e.target.value) })} />
+        </label>
+        <label>
+          Start date
+          <input type="date" value={site.startDate} onChange={(e) => set("startDate", e.target.value)} />
+        </label>
+        <label>
+          Window (days)
+          <input type="number" min={1} value={site.days} onChange={(e) => set("days", Number(e.target.value))} />
+        </label>
+        <label>
+          Step (hours)
+          <input type="number" min={0.25} step={0.25} value={site.stepHours}
+            onChange={(e) => set("stepHours", Number(e.target.value))} />
+        </label>
+      </div>
+      <div className="actions">
+        <button onClick={onAnalyze}>Analyze</button>
+        <button className="secondary" onClick={onAddToCompare} disabled={!canAdd}>
+          Add to compare
+        </button>
+      </div>
+    </section>
+  );
+}
