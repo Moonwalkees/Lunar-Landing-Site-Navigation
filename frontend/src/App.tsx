@@ -85,7 +85,7 @@ export default function App() {
             sun={tracks && { az: tracks.sun.az[index], el: tracks.sun.el[index] }}
             earth={tracks && { az: tracks.earth.az[index], el: tracks.earth.el[index] }}
           />
-          <TimeSeries timeIndex={index} maxIndex={maxIndex} onScrub={setTimeIndex} />
+          <TimeSeries analysis={analysis} timeIndex={index} maxIndex={maxIndex} onScrub={setTimeIndex} />
           <Compare pinned={pinned} onRemove={(i) => setPinned(pinned.filter((_, j) => j !== i))} />
         </main>
       </div>
