@@ -1,5 +1,12 @@
 // Shapes the panels expect. Placeholder only: the backend will fill these later.
 
+// One entry from GET /sites.
+export interface Preset {
+  name: string;
+  lat: number;
+  lon: number; // degrees east
+}
+
 export interface SiteInput {
   name: string;
   lat: number;

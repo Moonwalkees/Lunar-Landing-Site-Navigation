@@ -1,25 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SiteForm from "./components/SiteForm";
 import MetricCards from "./components/MetricCards";
 import Panorama from "./components/Panorama";
 import TerrainView from "./components/TerrainView";
 import TimeSeries from "./components/TimeSeries";
 import Compare, { MAX_COMPARE } from "./components/Compare";
-import { analyze as requestAnalysis } from "./api/client";
-import { PRESETS } from "./sites";
-import { EMPTY_METRICS, type Analysis, type Metrics, type PinnedSite, type SiteInput } from "./types";
+import { analyze as requestAnalysis, getSites } from "./api/client";
+import { FALLBACK_SITE, defaultSite } from "./sites";
+import { EMPTY_METRICS, type Analysis, type Metrics, type PinnedSite, type Preset, type SiteInput } from "./types";
 
 const today = new Date().toISOString().slice(0, 10);
 
 export default function App() {
   const [site, setSite] = useState<SiteInput>({
-    name: PRESETS[0].name,
-    lat: PRESETS[0].lat,
-    lon: PRESETS[0].lon,
+    ...FALLBACK_SITE,
     startDate: today,
     days: 29.5, // one lunar month
     stepHours: 1,
   });
+  // Until GET /sites answers (or if it never does), offer the fallback site only.
+  const [presets, setPresets] = useState<Preset[]>([FALLBACK_SITE]);
+  const [presetsError, setPresetsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSites()
+      .then((list) => {
+        if (cancelled || list.length === 0) return;
+        setPresets(list);
+        const start = defaultSite(list);
+        // Move to the backend's default only if the user hasn't picked or typed a site yet.
+        setSite((s) =>
+          s.name === FALLBACK_SITE.name && s.lat === FALLBACK_SITE.lat && s.lon === FALLBACK_SITE.lon
+            ? { ...s, ...start }
+            : s,
+        );
+      })
+      .catch((e) => {
+        if (!cancelled) setPresetsError(e instanceof Error ? e.message : "Could not load presets.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [metrics, setMetrics] = useState<Metrics>(EMPTY_METRICS);
   const [pinned, setPinned] = useState<PinnedSite[]>([]);
   const [timeIndex, setTimeIndex] = useState(0);
@@ -69,6 +92,8 @@ export default function App() {
         <aside>
           <SiteForm
             site={site}
+            presets={presets}
+            presetsError={presetsError}
             onChange={setSite}
             onAnalyze={analyze}
             analyzing={analyzing}

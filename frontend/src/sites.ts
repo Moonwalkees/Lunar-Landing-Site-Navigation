@@ -1,9 +1,15 @@
-// Placeholder preset list. Coordinates are approximate; the backend's GET /sites will replace this.
-export const PRESETS = [
-  { name: "Shackleton crater (Artemis III)", lat: -89.67, lon: 129.78 },
-  { name: "Connecting Ridge (Artemis III)", lat: -89.45, lon: 222.7 },
-  { name: "Malapert Massif (Artemis III)", lat: -86.0, lon: 2.9 },
-  { name: "Apollo 11", lat: 0.674, lon: 23.473 },
-  { name: "Apollo 17", lat: 20.191, lon: 30.772 },
-  { name: "Custom", lat: 0, lon: 0 },
-];
+import type { Preset } from "./types";
+
+// The presets themselves come from GET /sites (backend/app/sites.py).
+// These are only used before that answers, or if the backend is down.
+
+// Mirrors the first south pole preset in backend/app/sites.py, so the app opens on it offline too.
+export const FALLBACK_SITE: Preset = { name: "Shackleton crater (Artemis III)", lat: -89.67, lon: 129.78 };
+
+// Always offered last: picking it keeps the typed lat/lon.
+export const CUSTOM = "Custom";
+
+// The site the app opens on: the first south pole preset, else the first preset.
+export function defaultSite(presets: Preset[]): Preset {
+  return presets.find((p) => p.lat <= -80) ?? presets[0] ?? FALLBACK_SITE;
+}

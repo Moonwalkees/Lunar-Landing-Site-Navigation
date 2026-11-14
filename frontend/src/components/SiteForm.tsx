@@ -1,8 +1,10 @@
-import type { SiteInput } from "../types";
-import { PRESETS } from "../sites";
+import type { Preset, SiteInput } from "../types";
+import { CUSTOM } from "../sites";
 
 interface Props {
   site: SiteInput;
+  presets: Preset[];
+  presetsError: string | null;
   onChange: (site: SiteInput) => void;
   onAnalyze: () => void;
   analyzing: boolean;
@@ -10,14 +12,20 @@ interface Props {
   canAdd: boolean;
 }
 
-export default function SiteForm({ site, onChange, onAnalyze, analyzing, onAddToCompare, canAdd }: Props) {
+export default function SiteForm({
+  site, presets, presetsError, onChange, onAnalyze, analyzing, onAddToCompare, canAdd,
+}: Props) {
   const set = <K extends keyof SiteInput>(key: K, value: SiteInput[K]) =>
     onChange({ ...site, [key]: value });
 
   const pickPreset = (name: string) => {
-    const p = PRESETS.find((x) => x.name === name);
+    if (name === CUSTOM) return onChange({ ...site, name: CUSTOM }); // keep the current lat/lon
+    const p = presets.find((x) => x.name === name);
     if (p) onChange({ ...site, name: p.name, lat: p.lat, lon: p.lon });
   };
+
+  // A site name not in the list (e.g. a pinned preset after a reload) shows as Custom.
+  const selected = presets.some((p) => p.name === site.name) ? site.name : CUSTOM;
 
   return (
     <section className="panel">
@@ -25,12 +33,14 @@ export default function SiteForm({ site, onChange, onAnalyze, analyzing, onAddTo
       <div className="form">
         <label>
           Site
-          <select value={site.name} onChange={(e) => pickPreset(e.target.value)}>
-            {PRESETS.map((p) => (
+          <select value={selected} onChange={(e) => pickPreset(e.target.value)}>
+            {presets.map((p) => (
               <option key={p.name}>{p.name}</option>
             ))}
+            <option>{CUSTOM}</option>
           </select>
         </label>
+        {presetsError && <p className="muted">Presets unavailable: {presetsError} Type a lat/lon instead.</p>}
         <label>
           Lat (°)
           <input type="number" step="0.01" value={site.lat}

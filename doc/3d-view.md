@@ -48,7 +48,7 @@ Updates are cheap, so the props can change on every scrubber step. The orbit and
 
 Each is a 16 km square wrapped in coarser terrain out to 160 km. A site in another area makes the view download and switch to it (about 5 MB). A site outside all of them shows a message in the panel and the view stays where it was. Areas overlap; the view stays on the current one while it covers the site.
 
-The three south pole presets in `sites.ts` all have 3D terrain. The Apollo presets do not.
+The three south pole presets in `backend/app/sites.py` (served by `GET /sites`) all have 3D terrain. The Apollo presets do not.
 
 ## What the picture can and can't tell you
 
