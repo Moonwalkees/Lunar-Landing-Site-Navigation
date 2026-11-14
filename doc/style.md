@@ -153,7 +153,7 @@ Three bands over the window (sun, Earth, both) in 6-hour cells. Unlit dots stay 
 
 ## Frontend tickets
 
-- [4.1](../LarpBucket/feature/4.1-placeholder-frontend-shell.md) shell: applies tokens, type and square chrome (see 4.8)
+- [4.1](../LarpBucket/feature/done/4.1-placeholder-frontend-shell.md) shell: applies tokens, type and square chrome (see 4.8)
 - [4.2](../LarpBucket/feature/4.2-api-client-and-analyze.md) Analyze: loading and error states use status words and ghosting
 - [4.3](../LarpBucket/feature/4.3-presets-from-api.md) presets: board rows are the preset list
 - [4.4](../LarpBucket/feature/4.4-panorama-chart.md) panorama: skyline uses the palette, Doto labels and dot-matrix look
