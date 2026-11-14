@@ -1,0 +1,106 @@
+"""Everything ``POST /analyze`` returns for one site and time window.
+
+This only joins the other modules together: Sun and Earth positions (ephemeris), the
+terrain skyline (horizon), the power, battery and comms model (utils) and eclipses.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta
+from typing import Any
+
+import numpy as np
+from numpy.typing import NDArray
+
+from app.constants import DEFAULT_PANEL_AREA_M2, DEFAULT_PANEL_EFFICIENCY
+from app.eclipse import angular_separation, disc_radii, occulted_fraction
+from app.ephemeris import sun_earth_azel
+from app.horizon import MAST_M, height_at, skyline, skyline_at
+from app.utils import (
+    comms_margin,
+    comms_metrics,
+    comms_state,
+    disc_fraction,
+    longest_run,
+    power,
+    simulate_battery,
+    summarize_power,
+)
+
+MAX_STEPS = 20_000
+
+
+def _next_drop(times: list[str], up: NDArray[np.bool_]) -> str | None:
+    """The first time after the start at which a condition that was true becomes false."""
+    drops = np.flatnonzero(up[:-1] & ~up[1:])
+    return times[int(drops[0]) + 1] + "Z" if drops.size else None
+
+
+def analyze(lat: float, lon: float, start: date, days: float, step_hours: float) -> dict[str, Any]:
+    """Skyline, Sun and Earth tracks, power, battery, comms and the headline metrics."""
+    steps = int(np.floor(days * 24 / step_hours))
+    if steps + 1 > MAX_STEPS:
+        raise ValueError(f"That window has {steps + 1} time steps; the limit is {MAX_STEPS}. Use a larger step.")
+    begin = datetime(start.year, start.month, start.day)
+    times = [(begin + timedelta(hours=i * step_hours)).strftime("%Y-%m-%dT%H:%M:%S") for i in range(steps + 1)]
+
+    ground = float(height_at(lat, lon))
+    sky_az, sky_el = skyline(lat, lon)
+    # The ephemeris works in radians; the skyline, comms, eclipse and the response are in degrees.
+    sky = {name: np.degrees(angle) for name, angle in sun_earth_azel(lat, lon, times).items()}
+    sun_radius, earth_radius = disc_radii(lat, lon, times)
+
+    # Sun: share of the disc above the terrain, less whatever the Earth is covering.
+    sun_skyline = skyline_at(sky["sun_az"], sky_az, sky_el)
+    above_terrain = np.atleast_1d(disc_fraction(np.radians(sky["sun_el"]), np.radians(sun_skyline)))
+    behind_earth = occulted_fraction(
+        angular_separation(sky["sun_az"], sky["sun_el"], sky["earth_az"], sky["earth_el"]),
+        sun_radius, earth_radius,
+    )
+    fraction = above_terrain * (1.0 - behind_earth)
+    lit = fraction > 0
+
+    power_w = np.atleast_1d(power(np.radians(sky["sun_el"]), fraction, DEFAULT_PANEL_AREA_M2, DEFAULT_PANEL_EFFICIENCY))
+    summary = summarize_power(power_w, step_hours)
+
+    # Earth: clearance above the skyline in its direction.
+    margin = np.atleast_1d(comms_margin(sky["earth_el"], skyline_at(sky["earth_az"], sky_az, sky_el)))
+    comms = comms_metrics(margin, step_hours)
+    linked = margin >= 0
+
+    battery = simulate_battery(power_w, dt_h=step_hours)
+
+    return {
+        "site": {"lat": lat, "lon": lon, "heightM": round(ground, 1), "mastM": MAST_M},
+        "times": [t + "Z" for t in times],
+        "stepHours": step_hours,
+        "skyline": {"az": sky_az.tolist(), "el": np.round(sky_el, 3).tolist()},
+        "sun": {
+            "az": np.round(sky["sun_az"], 3).tolist(),
+            "el": np.round(sky["sun_el"], 3).tolist(),
+            "fraction": np.round(fraction, 3).tolist(),
+            "behindEarth": np.round(behind_earth, 3).tolist(),
+        },
+        "earth": {
+            "az": np.round(sky["earth_az"], 3).tolist(),
+            "el": np.round(sky["earth_el"], 3).tolist(),
+            "margin": np.round(margin, 3).tolist(),
+        },
+        "powerW": np.round(power_w, 1).tolist(),
+        "batteryWh": np.round(battery.charge_wh, 1).tolist(),
+        "comms": np.atleast_1d(comms_state(margin)).tolist(),
+        "metrics": {
+            "powerW": float(power_w[0]),
+            "whPerDay": summary.watt_hours_per_day,
+            "pctSunlit": summary.percent_time_sunlit,
+            "longestNightH": longest_run(~lit, step_hours),
+            "batteryMinWh": battery.minimum_wh,
+            "survives": battery.survives,
+            "earthClearanceDeg": comms.current_clearance_deg,
+            "pctEarthVisible": comms.percent_visible,
+            "longestBlackoutH": comms.longest_blackout_hours,
+            "nextSunset": _next_drop(times, lit),
+            "nextEarthset": _next_drop(times, linked),
+            "pctPowerAndComms": float(np.count_nonzero(lit & linked) * 100 / lit.size),
+        },
+    }
