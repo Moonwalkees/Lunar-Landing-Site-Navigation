@@ -39,6 +39,20 @@ export const EMPTY_METRICS: Metrics = {
   pctPowerAndComms: null,
 };
 
+// What POST /analyze returns. Arrays run over the time steps unless noted.
+export interface Analysis {
+  site: { lat: number; lon: number; heightM: number; mastM: number };
+  times: string[]; // ISO UTC
+  stepHours: number;
+  skyline: { az: number[]; el: number[] }; // 720 values, one every half degree
+  sun: { az: number[]; el: number[]; fraction: number[]; behindEarth: number[] };
+  earth: { az: number[]; el: number[]; margin: number[] };
+  powerW: number[];
+  batteryWh: number[];
+  comms: ("blocked" | "marginal" | "clear")[];
+  metrics: Metrics;
+}
+
 export interface PinnedSite {
   site: SiteInput;
   metrics: Metrics;

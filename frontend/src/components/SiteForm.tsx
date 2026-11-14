@@ -5,11 +5,12 @@ interface Props {
   site: SiteInput;
   onChange: (site: SiteInput) => void;
   onAnalyze: () => void;
+  analyzing: boolean;
   onAddToCompare: () => void;
   canAdd: boolean;
 }
 
-export default function SiteForm({ site, onChange, onAnalyze, onAddToCompare, canAdd }: Props) {
+export default function SiteForm({ site, onChange, onAnalyze, analyzing, onAddToCompare, canAdd }: Props) {
   const set = <K extends keyof SiteInput>(key: K, value: SiteInput[K]) =>
     onChange({ ...site, [key]: value });
 
@@ -55,7 +56,9 @@ export default function SiteForm({ site, onChange, onAnalyze, onAddToCompare, ca
         </label>
       </div>
       <div className="actions">
-        <button onClick={onAnalyze}>Analyze</button>
+        <button onClick={onAnalyze} disabled={analyzing}>
+          {analyzing ? "Analyzing…" : "Analyze"}
+        </button>
         <button className="secondary" onClick={onAddToCompare} disabled={!canAdd}>
           Add to compare
         </button>
