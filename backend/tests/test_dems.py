@@ -21,8 +21,14 @@ MOON_LONLAT = CRS.from_proj4("+proj=longlat +R=1737400 +no_defs")
 
 
 def height_m(ds, lat: float, lon: float) -> float:
-    xs, ys = transform(MOON_LONLAT, ds.crs, [lon], [lat])
-    row, col = ds.index(xs[0], ys[0])
+    if ds.crs.to_dict()["proj"] == "eqc":
+        # Index the global map by lon/lat like app/horizon.py does: its CRS
+        # metadata is off for lon > 180 (BUG-004), but the pixel grid is right.
+        row = int((90.0 - lat) * ds.height / 180.0)
+        col = int((lon % 360.0) * ds.width / 360.0)
+    else:
+        xs, ys = transform(MOON_LONLAT, ds.crs, [lon], [lat])
+        row, col = ds.index(xs[0], ys[0])
     assert 0 <= row < ds.height and 0 <= col < ds.width, (lat, lon)
     return float(ds.read(1, window=((row, row + 1), (col, col + 1)))[0, 0]) * ds.scales[0]
 

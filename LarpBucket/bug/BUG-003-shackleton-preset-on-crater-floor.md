@@ -23,7 +23,7 @@ The preset list shown in the site dropdown.
 The placeholder list uses the crater's catalogue centre coordinates rather than a rim landing site.
 
 ## File
-`frontend/src/sites.ts:3` (and `backend/app/sites.py` once ticket 3.5 creates it)
+`backend/app/sites.py:7` (served by `GET /sites`)
 
 ## Solution
 _Filled in when the ticket is done. See "Solution section" below._
