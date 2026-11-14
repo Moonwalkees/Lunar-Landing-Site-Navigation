@@ -6,10 +6,11 @@ from numpy.typing import ArrayLike, NDArray
 from app.constants import (
     DEFAULT_BATTERY_CAPACITY_WH,
     DEFAULT_LOAD_W,
+    MARGINAL_COMMS_CLEARANCE_DEG,
     SOLAR_CONSTANT_W_PER_M2,
     SUN_ANGULAR_RADIUS_RADIANS,
 )
-from app.model import BatteryResult, PowerMetrics
+from app.model import BatteryResult, CommsMetrics, PowerMetrics
 
 
 def scalar_or_array(value: NDArray[float]) -> float | NDArray[float]:
@@ -111,3 +112,40 @@ def longest_run(mask: ArrayLike, dt_h: SupportsFloat) -> float:
         current = current + 1 if value else 0
         longest = max(longest, current)
     return longest * interval_hours
+
+
+def comms_margin(earth_el: ArrayLike, skyline_el: ArrayLike) -> float | NDArray[np.float64]:
+    """Return Earth clearance above the terrain skyline in degrees."""
+    margin = np.asarray(earth_el) - np.asarray(skyline_el)
+    return scalar_or_array(margin)
+
+
+def comms_state(margin_deg: ArrayLike) -> str | NDArray[np.str_]:
+    """Classify Earth clearance as blocked, marginal, or clear."""
+    margin = np.asarray(margin_deg)
+    state = np.select(
+        [margin < 0.0, margin < MARGINAL_COMMS_CLEARANCE_DEG],
+        ["blocked", "marginal"],
+        default="clear",
+    )
+    return str(state) if state.ndim == 0 else state
+
+
+def comms_metrics(
+    margin_deg: ArrayLike,
+    dt_h: SupportsFloat,
+    current_index: int = 0,
+) -> CommsMetrics:
+    """Summarize Earth clearance, visibility, and the longest blackout."""
+    margins = np.asarray(margin_deg, dtype=float)
+    if margins.size == 0:
+        raise ValueError("margin_deg must contain at least one value")
+    if not 0 <= current_index < margins.size:
+        raise IndexError("current_index must refer to a margin value")
+
+    visible = margins >= 0.0
+    return CommsMetrics(
+        current_clearance_deg=float(margins[current_index]),
+        percent_visible=float(np.count_nonzero(visible) * 100 / margins.size),
+        longest_blackout_hours=longest_run(~visible, dt_h),
+    )
