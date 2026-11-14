@@ -20,3 +20,11 @@ def test_comms_metrics_report_clearance_visibility_and_blackout() -> None:
     assert metrics.current_clearance_radians == 0.0
     assert metrics.percent_visible == 50.0
     assert metrics.longest_blackout_hours == 4.0
+
+
+def test_comms_metrics_accepts_a_scalar_clearance() -> None:
+    metrics = comms_metrics(np.radians(1.0), dt_h=1.0)
+
+    assert metrics.current_clearance_radians == np.radians(1.0)
+    assert metrics.percent_visible == 100.0
+    assert metrics.longest_blackout_hours == 0.0
