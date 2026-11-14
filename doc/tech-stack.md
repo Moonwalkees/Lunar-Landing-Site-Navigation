@@ -19,6 +19,10 @@ Agreed stack for the Lunar Landing Site Navigator. Scope and requirements live i
 | Hosting | Backend: Docker image on Render or Fly (kernels + cropped DEMs inside). Frontend: Vercel | Public URL for the judges |
 | Caching | None for now | Keep it thin |
 
+## Current model defaults
+
+The demo uses a constant 100 W load and a 100 Wh battery capacity. Replace these temporary values when a mission power budget is available.
+
 ## Repo layout
 ```
 backend/

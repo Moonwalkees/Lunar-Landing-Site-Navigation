@@ -8,11 +8,22 @@ from numpy.typing import ArrayLike, NDArray
 SOLAR_CONSTANT_W_PER_M2 = 1361.0
 SUN_ANGULAR_RADIUS_RADIANS = np.deg2rad(0.267)
 
+# Temporary demo defaults. Replace after the mission power budget is defined.
+DEFAULT_LOAD_W = 100.0
+DEFAULT_BATTERY_CAPACITY_WH = 100.0
+
 
 @dataclass(frozen=True)
 class PowerMetrics:
     watt_hours_per_day: float
     percent_time_sunlit: float
+
+
+@dataclass(frozen=True)
+class BatteryResult:
+    charge_wh: NDArray[np.float64]
+    minimum_wh: float
+    survives: bool
 
 
 def disc_fraction(sun_el: ArrayLike, skyline_el: ArrayLike) -> float | NDArray[np.float64]:
@@ -59,3 +70,52 @@ def summarize_power(power_w: ArrayLike, step_hours: SupportsFloat) -> PowerMetri
         watt_hours_per_day=float(samples.sum() * interval_hours * 24 / total_hours),
         percent_time_sunlit=float(np.count_nonzero(samples > 0) * 100 / samples.size),
     )
+
+
+def simulate_battery(
+    power_w: ArrayLike,
+    load_w: SupportsFloat = DEFAULT_LOAD_W,
+    capacity_wh: SupportsFloat = DEFAULT_BATTERY_CAPACITY_WH,
+    dt_h: SupportsFloat = 1.0,
+) -> BatteryResult:
+    """Simulate a battery that starts full and clamps its charge each time step."""
+    interval_hours = float(dt_h)
+    capacity = float(capacity_wh)
+    if interval_hours <= 0:
+        raise ValueError("dt_h must be greater than zero")
+    if capacity <= 0:
+        raise ValueError("capacity_wh must be greater than zero")
+
+    samples = np.asarray(power_w, dtype=float)
+    charge_wh = np.empty_like(samples, dtype=float)
+    charge = capacity
+    for index, watts in enumerate(samples):
+        charge = float(
+            np.clip(
+                charge + (watts - float(load_w)) * interval_hours,
+                0,
+                capacity,
+            )
+        )
+        charge_wh[index] = charge
+
+    minimum_wh = float(charge_wh.min()) if charge_wh.size else capacity
+    return BatteryResult(
+        charge_wh=charge_wh,
+        minimum_wh=minimum_wh,
+        survives=bool(np.all(charge_wh > 0)),
+    )
+
+
+def longest_run(mask: ArrayLike, dt_h: SupportsFloat) -> float:
+    """Return the duration in hours of the longest contiguous true run."""
+    interval_hours = float(dt_h)
+    if interval_hours <= 0:
+        raise ValueError("dt_h must be greater than zero")
+
+    longest = 0
+    current = 0
+    for value in np.asarray(mask, dtype=bool):
+        current = current + 1 if value else 0
+        longest = max(longest, current)
+    return longest * interval_hours
