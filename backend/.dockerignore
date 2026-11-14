@@ -1,0 +1,23 @@
+
+.git
+.gitignore
+
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.venv/
+**/venv/
+
+**/.DS_Store
+**/.env
+**/.env.*
+**/*.log
+
+# Raw source DEM files
+data/dem/raw/
+**/*.part
+
+# Unnecessary development files
+tests/
+.coverage
+htmlcov/
