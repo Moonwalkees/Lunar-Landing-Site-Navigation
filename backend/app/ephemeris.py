@@ -118,26 +118,27 @@ def body_directions(
 def azel(
     dirs: np.ndarray, east: np.ndarray, north: np.ndarray, up: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Azimuth and elevation (deg) of unit directions in a local E/N/U frame.
+    """Azimuth and elevation (radians) of unit directions in a local E/N/U frame.
 
-    Azimuth: [0, 360), from north, clockwise (towards east).
-    Elevation: [-90, 90], above the local horizontal plane (no terrain).
+    Azimuth: [0, 2*pi), from north, clockwise (towards east).
+    Elevation: [-pi/2, pi/2], above the local horizontal plane (no terrain).
     """
     dirs = np.asarray(dirs, dtype=float)
-    el = np.degrees(np.arcsin(np.clip(dirs @ up, -1.0, 1.0)))
-    az = np.degrees(np.arctan2(dirs @ east, dirs @ north)) % 360.0
+    el = np.arcsin(np.clip(dirs @ up, -1.0, 1.0))
+    az = np.arctan2(dirs @ east, dirs @ north) % (2.0 * np.pi)
     return az, el
 
 
 def sun_earth_azel(lat_deg: float, lon_deg: float, times: list[str]) -> dict[str, np.ndarray]:
-    """Sun and Earth azimuth/elevation (deg) seen from a lunar surface site.
+    """Sun and Earth azimuth/elevation (radians) seen from a lunar surface site.
 
     lat_deg, lon_deg: site, planetocentric degrees north / east.
     times:            UTC time strings, e.g. "2027-01-01T00:00:00".
 
-    Returns {"sun_az", "sun_el", "earth_az", "earth_el"}, each a float array
-    the same length as `times`. Elevation is against the smooth-sphere
-    horizon; terrain is handled by horizon.py.
+    Returns {"sun_az", "sun_el", "earth_az", "earth_el"} in radians, each a
+    float array the same length as `times`. Azimuth is [0, 2*pi) from north,
+    clockwise; elevation is against the smooth-sphere horizon (terrain is
+    handled by horizon.py). Use np.degrees() for display.
     """
     east, north, up = local_enu(lat_deg, lon_deg)
     site = site_position(lat_deg, lon_deg)
