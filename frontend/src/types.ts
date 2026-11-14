@@ -64,3 +64,13 @@ export interface PinnedSite {
   site: SiteInput;
   metrics: Metrics;
 }
+
+// GET /terrain: a north-up height grid around a site for the 2D map.
+export interface TerrainGrid {
+  lat: number;
+  lon: number;
+  size: number; // cells per side
+  spacingM: number; // metres between neighbouring cells
+  sourceM: number; // pixel size of the elevation map behind the heights (20 m polar or ~474 m global)
+  heights: number[]; // metres, row by row from the north edge, west to east
+}

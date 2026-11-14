@@ -1,4 +1,4 @@
-import type { Analysis, Preset, SiteInput } from "../types";
+import type { Analysis, Preset, SiteInput, TerrainGrid } from "../types";
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -45,4 +45,21 @@ export async function analyze(site: SiteInput): Promise<Analysis> {
     );
   }
   return response.json();
+}
+
+// The height grid the 2D terrain map draws (24 km square around the site, 100 m cells).
+export async function getTerrain(lat: number, lon: number, signal?: AbortSignal): Promise<TerrainGrid> {
+  let response: Response;
+  try {
+    response = await fetch(BASE_URL + "/terrain?lat=" + lat + "&lon=" + lon, { signal });
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    throw new Error("Could not reach the backend at " + BASE_URL + ".");
+  }
+  if (!response.ok) throw new Error("The backend could not load terrain for this site (" + response.status + ").");
+  const body = await response.json();
+  if (!Number.isInteger(body?.size) || !Array.isArray(body?.heights) || body.heights.length !== body.size * body.size) {
+    throw new Error("The backend sent an unexpected terrain grid.");
+  }
+  return body;
 }

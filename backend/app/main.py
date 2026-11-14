@@ -10,12 +10,14 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
 from app.analysis import analyze
 from app.ephemeris import load_kernels
+from app.horizon import TERRAIN_SPACING_M, map_resolution_m, terrain_grid
 from app.sites import PRESETS
 
 # The frontend's dev server. Add hosted origins with FRONTEND_ORIGINS="https://a,https://b".
@@ -32,6 +34,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Lunar Landing Site Navigator", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"])
+# The terrain grid is about 250 kB of JSON; compressed it is well under 100 kB.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 class Site(BaseModel):
@@ -90,6 +94,15 @@ class Metrics(BaseModel):
     pctPowerAndComms: float | None
 
 
+class TerrainResponse(BaseModel):
+    lat: float
+    lon: float
+    size: int                   # cells per side; the grid is size x size
+    spacingM: float             # distance between neighbouring cells
+    sourceM: float              # pixel size of the elevation map the heights come from
+    heights: list[int]          # metres above the 1737.4 km sphere, row by row from the north edge, west to east
+
+
 class AnalyzeResponse(BaseModel):
     site: SiteInfo
     times: list[str]
@@ -116,3 +129,21 @@ def post_analyze(request: AnalyzeRequest) -> dict:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except FileNotFoundError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/terrain", response_model=TerrainResponse)
+def get_terrain(lat: float = Query(ge=-90, le=90), lon: float = Query(ge=-360, le=360)) -> dict:
+    """A north-up height grid around a site for the 2D map (24 km square, 100 m cells)."""
+    try:
+        grid = terrain_grid(lat, lon)
+        source = map_resolution_m(lat, lon)
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return {
+        "lat": lat,
+        "lon": lon,
+        "size": grid.shape[0],
+        "spacingM": TERRAIN_SPACING_M,
+        "sourceM": round(source, 1),
+        "heights": [int(h) for h in grid.round().ravel()],
+    }

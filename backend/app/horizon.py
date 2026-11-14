@@ -208,3 +208,49 @@ def skyline(
 def skyline_at(azimuth: ArrayLike, sky_az: NDArray, sky_el: NDArray) -> NDArray[np.float64]:
     """Skyline elevation at any azimuth, interpolated around the full circle."""
     return np.interp(np.asarray(azimuth, dtype=float) % 360.0, sky_az, sky_el, period=360.0)
+
+
+TERRAIN_HALF_M = 12_000.0       # the 2D map covers 24 km square around the site
+TERRAIN_SPACING_M = 100.0       # one height every 100 m: light to send, still shows craters and ridges
+
+
+def terrain_grid(
+    lat: float,
+    lon: float,
+    half_m: float = TERRAIN_HALF_M,
+    spacing_m: float = TERRAIN_SPACING_M,
+    height_fn: HeightFn | None = None,
+) -> NDArray[np.float32]:
+    """Terrain heights on a square, north-up grid centred on a site, for the 2D map.
+
+    Cell ``[i, j]`` lies ``half_m - i * spacing_m`` metres north and ``j * spacing_m - half_m``
+    metres east of the site, measured along the Moon's surface (azimuthal equidistant), so
+    row 0 is the north edge. North and east are the same as in ``skyline`` and the Sun and
+    Earth azimuths. Heights are metres above the 1737.4 km sphere.
+    """
+    count = int(round(2 * half_m / spacing_m)) + 1
+    offsets = np.linspace(-half_m, half_m, count)
+    north_m, east_m = np.meshgrid(offsets[::-1], offsets, indexing="ij")
+    east, north, up = local_enu(lat, lon)
+
+    # Walk from the site along the great circle towards each cell, as skyline() does.
+    arc = np.hypot(north_m, east_m) / MOON_RADIUS_M
+    bearing = np.arctan2(east_m, north_m)
+    level = north[None, None, :] * np.cos(bearing)[..., None] + east[None, None, :] * np.sin(bearing)[..., None]
+    unit = up * np.cos(arc)[..., None] + level * np.sin(arc)[..., None]
+    point_lat = np.degrees(np.arcsin(np.clip(unit[..., 2], -1.0, 1.0)))
+    point_lon = np.degrees(np.arctan2(unit[..., 1], unit[..., 0])) % 360.0
+
+    if height_fn is not None:
+        return np.asarray(height_fn(point_lat, point_lon), dtype=np.float32)
+    return _heights(point_lat, point_lon, fine=True)
+
+
+def map_resolution_m(lat: float, lon: float) -> float:
+    """Pixel size of the elevation map ``height_at`` uses at a site: 20 m polar or about 474 m global."""
+    with MAP_LOCK:
+        polar, world = _maps()
+        row, col = polar.rowcol(np.array([lat]), np.array([lon]))
+        if lat < -84.9 and bool(polar.covers(row, col)[0]):
+            return float(polar.pixel)
+        return float(2 * np.pi * MOON_RADIUS_M / world.ds.width)

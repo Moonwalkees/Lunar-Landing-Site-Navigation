@@ -2,13 +2,14 @@
 
 A panel that shows the real terrain around the selected site in 3D, at true scale, with the Sun casting shadows and the Earth in the sky. It is a pre-built Unity WebGL view embedded in the React app. It only displays what it is told; it never computes where the Sun or Earth are.
 
-This view is not in [scope.md](scope.md) yet (see ticket 4.9).
+This view is not in [scope.md](scope.md) yet (see ticket 4.9). The terrain panel has three views: **Bird's-eye view** (the default, a light 2D map, see [2d-view.md](2d-view.md)), **Orbit view** and **Surface view**. The 3D view and its download start only when the user picks orbit or surface.
 
 ## Where things are
 
 | What | Where |
 |---|---|
-| React panel | `frontend/src/components/TerrainView.tsx` |
+| React panel (view buttons) | `frontend/src/components/TerrainView.tsx` |
+| 3D view inside the panel | `frontend/src/components/TerrainView3D.tsx` |
 | Which areas have terrain | `frontend/src/terrain.ts` |
 | The built view (68 MB) | `frontend/public/unity/` |
 
