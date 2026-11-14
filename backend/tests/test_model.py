@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from app.model import disc_fraction, power, summarize_power
+from app.utils import disc_fraction, power, summarize_power
 
 
 def test_disc_fraction_reaches_expected_horizon_boundaries() -> None:
