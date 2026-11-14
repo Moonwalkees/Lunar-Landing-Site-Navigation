@@ -30,9 +30,9 @@ def test_output_shape_and_ranges():
     for key, arr in out.items():
         assert arr.shape == (len(times),), key
     for key in ("sun_az", "earth_az"):
-        assert np.all((out[key] >= 0) & (out[key] < 360))
+        assert np.all((out[key] >= 0) & (out[key] < 2 * np.pi))
     for key in ("sun_el", "earth_el"):
-        assert np.all(np.abs(out[key]) <= 90)
+        assert np.all(np.abs(out[key]) <= np.pi / 2)
 
 
 def test_empty_times():
@@ -61,13 +61,13 @@ def test_sun_overhead_at_subsolar_point(t):
         sun, _ = sp.spkpos("SUN", sp.str2et(t), "MOON_ME", "LT+S", "MOON")
         _, lon, lat = sp.reclat(sun)
     out = sun_earth_azel(np.degrees(lat), np.degrees(lon), [t])
-    assert out["sun_el"][0] == pytest.approx(90.0, abs=0.1)
+    assert np.degrees(out["sun_el"][0]) == pytest.approx(90.0, abs=0.1)
 
 
 def test_earth_high_and_steady_at_apollo_11():
     # Sub-Earth point is near (0, 0), so Earth sits ~90 - 23.5 = ~66 deg up.
     # Libration swings it about +/-8 deg over a month.
-    el = sun_earth_azel(0.67, 23.47, month_times("2027-01-01"))["earth_el"]
+    el = np.degrees(sun_earth_azel(0.67, 23.47, month_times("2027-01-01"))["earth_el"])
     assert el.mean() == pytest.approx(66.0, abs=2.0)
     assert el.min() > 56.0 and el.max() < 76.0
 
@@ -75,7 +75,7 @@ def test_earth_high_and_steady_at_apollo_11():
 def test_earth_near_horizon_at_south_pole():
     # Latitude libration (~6.7 deg) plus parallax keeps Earth within ~7 deg
     # of the horizon, and it must actually wobble (libration is modelled).
-    el = sun_earth_azel(-90.0, 0.0, month_times("2027-01-01"))["earth_el"]
+    el = np.degrees(sun_earth_azel(-90.0, 0.0, month_times("2027-01-01"))["earth_el"])
     assert np.all(np.abs(el) < 8.0)
     assert el.max() - el.min() > 5.0
 
