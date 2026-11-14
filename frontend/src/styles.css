@@ -33,7 +33,7 @@ input, select {
   background: var(--bg); color: var(--text); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 8px; font: inherit;
 }
-.actions { display: flex; gap: 8px; margin-top: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 button {
   background: var(--accent); color: #111; border: none; border-radius: 6px;
   padding: 8px 12px; font: inherit; font-weight: 600; cursor: pointer;
@@ -89,3 +89,10 @@ th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--bord
 /* Compare: best value per metric row. Palette colour, no glow (style.md > Colour). */
 td.best { color: var(--ok, #7BD66B); font-weight: 700; }
 th { font-weight: 600; }
+
+.terrain-stage canvas.terrain-map { cursor: grab; }
+.terrain-stage canvas.terrain-map:active { cursor: grabbing; }
+.terrain-readout {
+  position: absolute; top: 8px; right: 8px; pointer-events: none; font-size: 0.75rem;
+  font-variant-numeric: tabular-nums; background: rgba(13, 17, 23, 0.8); border-radius: 4px; padding: 2px 6px;
+}
