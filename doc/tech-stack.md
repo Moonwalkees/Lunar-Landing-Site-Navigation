@@ -22,11 +22,13 @@ Agreed stack for the Lunar Landing Site Navigator. Scope and requirements live i
 ## Repo layout
 ```
 backend/
-  app/main.py             routes
+  app/constants.py        physical constants
   app/ephemeris.py        Sun/Earth az/el
   app/horizon.py          DEM load + skyline
-  app/model.py            power, battery, comms metrics
+  app/main.py             routes
+  app/model.py            model schemas
   app/sites.py            preset list
+  app/utils.py            shared model calculations
   scripts/fetch_data.py   download kernels + DEMs, crop
   tests/
   requirements.txt
