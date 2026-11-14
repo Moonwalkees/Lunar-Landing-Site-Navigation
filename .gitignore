@@ -2,3 +2,6 @@ node_modules/
 dist/
 .venv/
 __pycache__/
+
+# Downloaded kernels and DEMs (fetch with backend/scripts/fetch_data.py)
+backend/data/
