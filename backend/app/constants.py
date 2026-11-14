@@ -8,4 +8,5 @@ SUN_ANGULAR_RADIUS_RADIANS = radians(0.267)
 DEFAULT_LOAD_W = 100.0
 DEFAULT_BATTERY_CAPACITY_WH = 100.0
 
+# The model uses radians, so convert the 0.5-degree product threshold once here.
 MARGINAL_COMMS_CLEARANCE_RADIANS = radians(0.5)
