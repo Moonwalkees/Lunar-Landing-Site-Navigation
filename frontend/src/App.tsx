@@ -2,6 +2,7 @@ import { useState } from "react";
 import SiteForm from "./components/SiteForm";
 import MetricCards from "./components/MetricCards";
 import Panorama from "./components/Panorama";
+import TerrainView from "./components/TerrainView";
 import TimeSeries from "./components/TimeSeries";
 import Compare, { MAX_COMPARE } from "./components/Compare";
 import { analyze as requestAnalysis } from "./api/client";
@@ -78,6 +79,12 @@ export default function App() {
         <main>
           <MetricCards metrics={metrics} />
           <Panorama timeIndex={index} />
+          <TerrainView
+            lat={site.lat}
+            lon={site.lon}
+            sun={tracks && { az: tracks.sun.az[index], el: tracks.sun.el[index] }}
+            earth={tracks && { az: tracks.earth.az[index], el: tracks.earth.el[index] }}
+          />
           <TimeSeries timeIndex={index} maxIndex={maxIndex} onScrub={setTimeIndex} />
           <Compare pinned={pinned} onRemove={(i) => setPinned(pinned.filter((_, j) => j !== i))} />
         </main>
