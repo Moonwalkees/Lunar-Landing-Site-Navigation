@@ -4,7 +4,7 @@ import type { Preset } from "./types";
 // These are only used before that answers, or if the backend is down.
 
 // Mirrors the first south pole preset in backend/app/sites.py, so the app opens on it offline too.
-export const FALLBACK_SITE: Preset = { name: "Connecting Ridge (Artemis III, 2022)", lat: -89.45, lon: 222.7 };
+export const FALLBACK_SITE: Preset = { name: "Malapert Massif (Artemis III)", lat: -85.964, lon: 357.681 };
 
 // Always offered last: picking it keeps the typed lat/lon.
 export const CUSTOM = "Custom";

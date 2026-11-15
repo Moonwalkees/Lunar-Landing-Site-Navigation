@@ -14,13 +14,14 @@ Degrees, planetocentric latitude, east-positive longitude. Each point has a sour
   permanently shadowed floor (BUG-003). Kept as the dark case; not a landing region.
 - Apollo 11 and 17: the lunar module positions in NASA's NSSDC Apollo landing site table.
 
-The first south pole preset is the site the app opens on, so it is one that sees the Sun.
+The first south pole preset is the site the app opens on: Malapert Massif, the one still on NASA's
+current list, top of the board's ranking, and in sight of Earth all year.
 """
 
 PRESETS: list[dict[str, float | str]] = [
-    {"name": "Connecting Ridge (Artemis III, 2022)", "lat": -89.45, "lon": 222.7},
-    {"name": "Peak near Shackleton (Artemis III, 2022)", "lat": -88.8081, "lon": 123.718},
     {"name": "Malapert Massif (Artemis III)", "lat": -85.964, "lon": 357.681},
+    {"name": "Peak near Shackleton (Artemis III, 2022)", "lat": -88.8081, "lon": 123.718},
+    {"name": "Connecting Ridge (Artemis III, 2022)", "lat": -89.45, "lon": 222.7},
     {"name": "Shackleton crater floor", "lat": -89.67, "lon": 129.78},
     {"name": "Apollo 11", "lat": 0.67408, "lon": 23.47297},
     {"name": "Apollo 17", "lat": 20.1908, "lon": 30.77168},

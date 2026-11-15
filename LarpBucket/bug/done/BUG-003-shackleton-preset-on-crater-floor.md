@@ -4,7 +4,7 @@ Status: done
 Owner: Aiken
 Severity: medium
 Affects: site presets (frontend placeholder list, later GET /sites)
-Note: done by changing the default, not the coordinates. The app now opens on Connecting Ridge; the Shackleton preset stays on the crater floor as the permanently dark case.
+Note: done by changing the default, not the coordinates. The app now opens on a lit site (Connecting Ridge at first, Malapert Massif since ticket 3.7); the Shackleton preset stays on the crater floor as the permanently dark case.
 
 ## Summary
 The "Shackleton crater (Artemis III)" preset is the crater's centre, a permanently shadowed floor, so it will show almost no sunlight.
@@ -27,11 +27,11 @@ The placeholder list uses the crater's catalogue centre coordinates rather than 
 `backend/app/sites.py:7` (served by `GET /sites`)
 
 ## Solution
-**Chosen:** Connecting Ridge is now the first south pole preset in `backend/app/sites.py`, so both UIs open on it (`defaultSite` in `frontend/src/sites.ts` takes the first south pole preset; `FALLBACK_SITE` matches for when the backend is down). The Shackleton preset keeps its coordinates. This was the team member's call: fix what the bug cost, which was a first screen of zeros, and keep the crater floor as an example of a site that never sees the Sun.
+**Chosen:** A lit site is now the first south pole preset in `backend/app/sites.py` (Connecting Ridge, then Malapert Massif from ticket 3.7), so both UIs open on it (`defaultSite` in `frontend/src/sites.ts` takes the first south pole preset; `FALLBACK_SITE` matches for when the backend is down). The Shackleton preset keeps its coordinates. This was the team member's call: fix what the bug cost, which was a first screen of zeros, and keep the crater floor as an example of a site that never sees the Sun.
 
 **Strengths**
 - The first thing anyone sees after opening the app is a site with sunlight, power and Earth contact.
-- Connecting Ridge is also the 3D view's built-in terrain, so the first 3D view loads without fetching another area.
+- The default site is also the 3D view's built-in terrain, so the first 3D view loads without fetching another area.
 - The crater floor stays on the board as a useful contrast: 0% sunlit, ranked last.
 
 **Limitations**
