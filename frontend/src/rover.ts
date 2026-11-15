@@ -2,8 +2,7 @@ import type { Analysis } from "./types";
 
 // What a rover parked at the analysed site is getting at one time step. It only reads the
 // analysis (the same power and battery model as the time series) and works out no sunlight
-// of its own, so it cannot disagree with the charts. Shared by the classic card
-// (components/RoverStatus.tsx) and the board's card (board/RoverPanel.tsx).
+// of its own, so it cannot disagree with the charts. Used by the board's readout (board/RoverPanel.tsx).
 
 export type RoverKind = "charging" | "full" | "battery" | "empty";
 

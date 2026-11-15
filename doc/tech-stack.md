@@ -15,7 +15,7 @@ Agreed stack for the Lunar Landing Site Navigator. Scope and requirements live i
 | Horizon algo | Ray-march 720 azimuths (0.5°) and take the max elevation angle, with lunar curvature | Simple, ~1 s per site |
 | Model | numpy functions straight from the scope.md Model section | One place for all the metric math |
 | API | FastAPI + pydantic. `GET /sites` (hardcoded presets), `POST /analyze` | Typed, minimal |
-| Frontend | React + Vite + TS, plain `useState`. Two UIs, switched at runtime by a top-right button (choice remembered; `?ui=` overrides; `VITE_UI` sets the default): `board` (default, `src/board/`, the dot-matrix design in [style.md](style.md), with `three` for the 3D map, canvas dot charts, and `qrcode-generator` for the mission card's QR code) and `classic` (`App.tsx`, `react-plotly.js` for the panorama). Site picker: dropdown + lat/lon inputs | Team knows React; three.js added 2026-11-15 for the approved 3D map |
+| Frontend | React + Vite + TS, plain `useState`. One UI, the board (`src/board/`, the dot-matrix design in [style.md](style.md)), with `three` for the 3D map, canvas dot charts, and `qrcode-generator` for the mission card's QR code. The original "classic" UI and its `react-plotly.js` charts were removed on 2026-11-15 (ticket 4.30). Sites: board rows, map pins and + ADD SITE | Team knows React; three.js added 2026-11-15 for the approved 3D map |
 | Hosting | Backend: Docker image on Render or Fly (kernels + cropped DEMs inside). Frontend: Vercel | Public URL for the judges |
 | Caching | None for now | Keep it thin |
 
@@ -38,10 +38,9 @@ backend/
   requirements.txt
   Dockerfile
 frontend/
-  src/main.tsx            picks the UI (src/uiChoice.ts: ?ui=, saved choice, VITE_UI)
-  src/board/              dot-matrix board UI (default)
-  src/App.tsx             classic UI (BOARD VIEW / CLASSIC VIEW button, src/UiSwitch.tsx)
-  src/components/{SiteForm,MetricCards,Panorama,TimeSeries,Compare}.tsx
+  src/main.tsx            loads the board
+  src/board/              dot-matrix board UI
+  src/components/{TerrainMap,TerrainView3D,ForecastLegend}.tsx   the board's 2D and 3D detail views
 doc/
   scope.md
   tech-stack.md

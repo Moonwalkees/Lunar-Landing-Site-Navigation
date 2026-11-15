@@ -11,11 +11,10 @@ See [doc/scope.md](doc/scope.md) for the full plan: scope, user interaction, dat
 ```bash
 cd frontend
 npm install
-npm run dev                      # dot-matrix board UI (default)
-VITE_UI=classic npm run dev      # the original panel UI
+npm run dev                      # the dot-matrix board UI
 ```
 
-Both UIs ship in every build. The **CLASSIC VIEW** / **BOARD VIEW** button at the top-right switches between them and remembers the choice; `?ui=board` or `?ui=classic` forces one. `VITE_UI` only sets the default for first-time visitors (read at build time, so set it for `npm run build` too, or in `frontend/.env.local`).
+The board is the only UI; the original "classic" panel layout was removed (ticket 4.30).
 The board design is described in [doc/style.md](doc/style.md). `VITE_API_URL` points at the backend (default `http://localhost:8000`).
 
 ## Backend with Docker

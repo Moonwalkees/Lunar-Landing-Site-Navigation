@@ -2,7 +2,7 @@
 
 Visual design for the Lunar Landing Site Navigator frontend. Scope lives in [scope.md](scope.md) and the stack in [tech-stack.md](tech-stack.md). This document only says how the frontend should look and feel.
 
-**Status:** implemented in `frontend/src/board/` (ticket 4.12), the default UI. The original UI stays available through the **CLASSIC VIEW** button to the right of the clock stats, top-right of the map (a console-style `.cbtn`-look button; ticket 4.22), or `?ui=classic`.
+**Status:** implemented in `frontend/src/board/` (ticket 4.12), the app's only UI. The original "classic" UI and its CLASSIC VIEW button were removed (ticket 4.30).
 
 ## Reference mocks
 
@@ -135,7 +135,7 @@ A 1200 px wide PNG of one site (ticket 8.1, `board/drawCard.ts`), opened from th
 Three bands over the window (sun, Earth, both) in 6-hour cells. Unlit dots stay faintly visible as an unlit display. The scrub position is a column of `--regolith` dots. Dragging on the chart scrubs time.
 
 ### Time dock
-- Back and forward step one 6-hour cell. Play moves one analysis step at a time, every frame, so time flows as it does in the classic UI (with reduced motion: one jump a second, in whole cells).
+- Back and forward step one 6-hour cell. Play moves one analysis step at a time, every frame, so time flows smoothly (with reduced motion: one jump a second, in whole cells).
 - A SPEED button cycles 6H/S, 1D/S, 4D/S, 10D/S (default) of mission time per second. The board opens on a 365-day window at 2 h steps, which plays through in about 36 s at the default speed. Faster speeds cover more steps per frame.
 - The scrubber is a full-width range with a dotted track and a block thumb at least 44 px tall.
 - All buttons are at least 56 px square on the dock.
@@ -175,7 +175,7 @@ Three bands over the window (sun, Earth, both) in 6-hour cells. Unlit dots stay 
 These need an answer from the team before the matching work starts. This document does not change scope or stack.
 
 1. **3D map.** Decided 2026-11-15: `three` is added to the stack. The hero is the real `GET /terrain` grid around the selected site, dithered as above, with shadows from `terrain2d.sunlight()`. The console's **SURFACE VIEW** button (or tapping the selected pin) opens an unfiltered detail view: the Unity surface and orbit views (`doc/3d-view.md`) plus the 2D bird's-eye map (`doc/2d-view.md`). The tabs run 2D MAP, ORBIT, SURFACE, and the view opens on orbit. Each map shows one 24 km site area, so pins for other sites appear only when they fall inside it.
-2. **Plotly versus dot-matrix charts.** The board UI draws custom canvas dot charts; Plotly is only used by the classic UI. The dot chart adds power and battery bands below sun / Earth / both, to cover scope.md Core 5.
+2. **Plotly versus dot-matrix charts.** The board UI draws custom canvas dot charts; Plotly went with the classic UI (ticket 4.30). The dot chart adds power and battery bands below sun / Earth / both, to cover scope.md Core 5.
 3. **Horizon panorama in the mock.** The board puts it as a dot-matrix "Horizon" panel under the dot chart, with a Metrics panel (all of Core 4) below it. Board score: `0.4 × % sunlit + 0.3 × % Earth visible + 0.3 × % both`, from the mock, computed from the backend's metrics.
 4. **Amber for unselected pins.** `--sun` is also the "power" colour. If that reads as sunlit data on the map, use `--regolith` for unselected pins.
 5. **Mock source.** The mocks exist only as artifacts. If the team wants them kept in the repo, copy the HTML into `doc/` (not done).

@@ -61,9 +61,6 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .flag { margin-top: 8px; display: inline-block; border: 1px dashed var(--ash-dim); padding: 2px 6px; }
 .flag.alert { border-style: solid; border-color: var(--regolith); color: var(--regolith); }
 .hud-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 24px; }
-/* CLASSIC VIEW button (src/UiSwitch.tsx), right of the clock stats, styled like the console buttons. */
-.ui-switch { pointer-events: auto; font: 800 18px var(--font-dot); color: var(--regolith); background: var(--space); border: 1px solid var(--regolith); border-radius: 0; min-height: 44px; padding: 0 14px; cursor: pointer; touch-action: manipulation; white-space: nowrap; }
-.ui-switch:active { background: var(--regolith); color: var(--space); }
 .clock { display: flex; flex-wrap: wrap; gap: 6px 24px; }
 .clock div { display: flex; flex-direction: column; gap: 4px; }
 .clock b { font-weight: 800; font-size: 24px; white-space: nowrap; }

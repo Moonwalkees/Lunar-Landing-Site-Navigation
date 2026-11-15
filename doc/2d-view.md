@@ -45,7 +45,7 @@ Under the view buttons, once an analysis for the site is in:
 | Forecast | Off, Power, Comms | Which value to forecast. Off shows the normal map. |
 | Show | Change, Worst dip | Change is the value at the end of the span less the value now. Worst dip is the lowest value during the span less the value now, so it also catches a drop that recovers before the end. |
 | Show | Early warning | Also colours ground that is close to changing. See below. |
-| Ahead | 3, 6 and 12 time steps, then 1, 3 and 7 days | How far ahead to look. The buttons are labelled in hours or days: 6 steps is 12 h in the board UI (2 h steps) and 6 h in the classic UI (1 h steps). |
+| Ahead | 3, 6 and 12 time steps, then 1, 3 and 7 days | How far ahead to look. The buttons are labelled in hours or days: 6 steps is 12 h at the board's 2 h steps. |
 
 ### What is computed
 

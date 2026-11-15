@@ -3,7 +3,7 @@ import type { Analysis } from "./types";
 // Lunar eclipses in an analysis: seen from the Moon, the Earth passing in front of the Sun.
 // The backend already gives, for every time step, the share of the Sun's disc the Earth covers
 // (sun.behindEarth, ticket 6.1); this only finds the runs of steps where it is above zero.
-// Shared by the board and the classic UI (ticket 7.4).
+// Used by the board's chart, 3D view and readouts (ticket 7.4).
 
 export interface Eclipse {
   start: number; // first time step with part of the Sun covered

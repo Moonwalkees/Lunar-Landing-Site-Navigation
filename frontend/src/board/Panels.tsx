@@ -218,7 +218,7 @@ export function TimeDock({ timeIndex, maxIndex, cellSteps, time, enabled, onScru
   const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Play runs every frame and moves one analysis step at a time, so the Sun, the shadows and the
-  // scrubber flow as they do in the classic UI, and wraps at the end. With reduced motion it keeps
+  // scrubber flow smoothly, and wraps at the end. With reduced motion it keeps
   // to one jump a second, in whole 6 h cells.
   const h = SPEEDS[speed].hours;
   const stepsPerSecond = (h * cellSteps) / 6; // cellSteps is the number of steps in 6 h

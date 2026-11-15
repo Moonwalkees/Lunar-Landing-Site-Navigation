@@ -9,9 +9,7 @@ COPY . .
 
 # Vite bakes these into the bundle at build time, so pass them as build args.
 ARG VITE_API_URL
-ARG VITE_UI
-ENV VITE_API_URL=$VITE_API_URL \
-    VITE_UI=$VITE_UI
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 

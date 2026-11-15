@@ -1,5 +1,5 @@
-// Remembers the user's setup in this browser (localStorage), so a reload, or the board/classic
-// switch (which reloads the page), keeps it. Nothing leaves the browser.
+// Remembers the user's setup in this browser (localStorage), so a reload keeps it. Nothing leaves
+// the browser.
 //
 // Whatever comes back from storage is untrusted: old versions, hand edits and other tabs can all
 // leave anything there. Every field is checked, and a bad one is dropped, never thrown on.
@@ -7,10 +7,9 @@
 // runs as it did before.
 import type { BoardSite, MissionWindow, SortKey } from "./board/data";
 import { ROVER_RULES, type RoverSpec } from "./rovers";
-import type { SiteInput } from "./types";
 
 const BOARD_KEY = "lunar-board-v1";
-const CLASSIC_KEY = "lunar-classic-v1";
+const OLD_CLASSIC_KEY = "lunar-classic-v1"; // the removed classic UI's form; only ever cleared now
 
 function read(key: string): Record<string, unknown> | null {
   try {
@@ -93,23 +92,11 @@ export function loadBoard(): SavedBoard {
 
 export const saveBoard = (state: SavedBoard): void => write(BOARD_KEY, state);
 
-// ---------- the classic form ----------
-
-export function loadClassic(): SiteInput | null {
-  const raw = read(CLASSIC_KEY);
-  if (!raw) return null;
-  const win = parseWindow(raw); // the form is a site plus the same window fields the board saves
-  if (!win || !text(raw.name, 80) || !validLat(raw.lat) || !validLon(raw.lon)) return null;
-  return { name: raw.name, lat: raw.lat, lon: raw.lon, ...win };
-}
-
-export const saveClassic = (site: SiteInput): void => write(CLASSIC_KEY, site);
-
 // Forget everything this file saved (the RESET button), so the next load starts from the defaults.
 export function clearSaved(): void {
   try {
     localStorage.removeItem(BOARD_KEY);
-    localStorage.removeItem(CLASSIC_KEY);
+    localStorage.removeItem(OLD_CLASSIC_KEY);
   } catch {
     // Nothing to clear if storage is blocked.
   }

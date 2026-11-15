@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import BoardApp from "./BoardApp";
 import "./board.css";
 
-// The dot-matrix board UI (doc/style.md). Chosen when VITE_UI is unset or "board" (see main.tsx).
+// The dot-matrix board UI (doc/style.md), the app's only frontend (see main.tsx).
 export function mount(root: HTMLElement) {
   document.title = "Lunar Site Board";
   // Doto wght 100-900 and Geist Mono 400/500 (doc/style.md > Type).

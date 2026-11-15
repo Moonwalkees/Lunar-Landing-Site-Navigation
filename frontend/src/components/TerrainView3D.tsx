@@ -55,7 +55,7 @@ function loadUnityLoader(): Promise<void> {
   return loader;
 }
 
-// The 3D half of the terrain panel (TerrainView): the real terrain around the site, with the Sun casting shadows and the Earth
+// The board's 3D detail view (board/Detail3D.tsx): the real terrain around the site, with the Sun casting shadows and the Earth
 // in the sky. It only displays the angles it is given; it never computes them.
 export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons, lookSun }: Props) {
   const stage = useRef<HTMLDivElement>(null);
