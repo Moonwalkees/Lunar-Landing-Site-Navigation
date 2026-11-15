@@ -161,9 +161,9 @@ Three bands over the window (sun, Earth, both) in 6-hour cells. Unlit dots stay 
 - [4.2](../LarpBucket/feature/done/4.2-api-client-and-analyze.md) Analyze: loading and error states use status words and ghosting
 - [4.3](../LarpBucket/feature/done/4.3-presets-from-api.md) presets: board rows are the preset list
 - [4.4](../LarpBucket/feature/done/4.4-panorama-chart.md) panorama: skyline uses the palette, Doto labels and dot-matrix look
-- [4.5](../LarpBucket/feature/4.5-time-series-and-scrubber.md) time series and scrubber: dot chart and time dock
+- [4.5](../LarpBucket/feature/done/4.5-time-series-and-scrubber.md) time series and scrubber: dot chart and time dock
 - [4.6](../LarpBucket/feature/done/4.6-compare-best-highlight.md) compare: board-style rows
-- [4.8](../LarpBucket/feature/4.8-apply-style-tokens-and-type.md) apply tokens and type
+- [4.8](../LarpBucket/feature/done/4.8-apply-style-tokens-and-type.md) apply tokens and type
 - [4.12](../LarpBucket/feature/done/4.12-dot-matrix-board-ui.md) board UI (built; `VITE_UI` switch)
 
 ## Open decisions
