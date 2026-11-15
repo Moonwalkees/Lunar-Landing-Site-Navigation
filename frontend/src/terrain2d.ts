@@ -277,13 +277,15 @@ const SHADOW = [[8, 10, 24], [84, 98, 146]]; // deep cool blue, relief still rea
 // the map from showing 100 m squares and staircase shadow edges when zoomed in.
 export const UPSAMPLE = 2;
 
-// Grid cell and bilinear weight for each image row / column (the same for both axes).
-function upsampleAxis(n: number): { cell: Int32Array; frac: Float32Array } {
-  const m = n * UPSAMPLE;
+// Grid cell and bilinear weight for each image row / column (the same for both axes), for an
+// image UPSAMPLE x an n-cell grid. `fieldN` is the size of the field being read when it is coarser
+// than the grid (a field over every second cell, say): its first and last cells sit on the grid's.
+function upsampleAxis(n: number, fieldN = n): { cell: Int32Array; frac: Float32Array } {
+  const m = n * UPSAMPLE, ratio = n > 1 ? (fieldN - 1) / (n - 1) : 1;
   const cell = new Int32Array(m), frac = new Float32Array(m);
   for (let p = 0; p < m; p++) {
-    const g = Math.min(n - 1, Math.max(0, (p + 0.5) / UPSAMPLE - 0.5));
-    cell[p] = Math.min(n - 2, Math.floor(g));
+    const g = Math.min(n - 1, Math.max(0, (p + 0.5) / UPSAMPLE - 0.5)) * ratio;
+    cell[p] = Math.min(fieldN - 2, Math.floor(g));
     frac[p] = g - cell[p];
   }
   return { cell, frac };
@@ -364,13 +366,14 @@ export function deltaColour(loss: boolean, late: number): [number, number, numbe
 // falls, blue where it rises. The base is first turned grey, so colour only ever means change.
 // `when` (steps after now at which each cell changes) and `span` (steps in the window) shade the
 // colour from vivid for soon to pale for late; without them every change is the vivid shade.
+// The field may be coarser than the map's grid (the rough preview, ticket 7.12).
 // Returns a new image.
 export function paintDelta(base: ImageData, delta: Float32Array, opacity = 0.8, when?: Uint8Array, span = 0): ImageData {
   const n = Math.round(Math.sqrt(delta.length));
   const m = base.width;
   const out = new ImageData(m, m);
   const src = base.data, px = out.data;
-  const { cell, frac } = upsampleAxis(n);
+  const { cell, frac } = upsampleAxis(Math.round(m / UPSAMPLE), n);
   const timed = when !== undefined && span > 0;
   let o = 0;
   for (let y = 0; y < m; y++) {

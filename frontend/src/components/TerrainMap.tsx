@@ -107,7 +107,7 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons, analysis
   const matched = grid && analysis && grid.lat === lat && grid.lon === lon
     && analysis.site.lat === lat && analysis.site.lon === lon;
   const { forecast, failed } = useForecast(matched ? grid : null, matched ? analysis : null, index, ahead, layer, early);
-  const shown = forecast && grid && forecast.body === layer && forecast.early === early && forecast.now.length === grid.size * grid.size ? forecast : null;
+  const shown = forecast && grid && forecast.body === layer && forecast.early === early && forecast.size <= grid.size ? forecast : null;
   const field = shown ? (mode === "dip" ? shown.dip : shown.delta) : null;
   const fieldAt = shown ? (mode === "dip" ? shown.dipAt : shown.deltaAt) : undefined;
   const span = shown?.steps ?? 0;
@@ -336,7 +336,9 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons, analysis
       const bearing = ((Math.atan2(east, north) * 180) / Math.PI + 360) % 360;
       readout = `${distance.toFixed(1)} km at ${bearing.toFixed(0)}° · height ${grid.heights[r * n + c]} m`;
       if (shown && analysis) {
-        const k = r * n + c, now = shown.now[k], then = now + shown.delta[k], low = now + shown.dip[k];
+        // The field is coarser than the grid while the rough preview is up.
+        const fn = shown.size, toField = (v: number) => Math.round((v * (fn - 1)) / (n - 1));
+        const k = toField(r) * fn + toField(c), now = shown.now[k], then = now + shown.delta[k], low = now + shown.dip[k];
         // Early warning values are clearance above the horizon: 0.5 + degrees / (2 * band).
         const show = (v: number) => {
           if (!shown.early) return v.toFixed(2);

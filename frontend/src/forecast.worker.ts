@@ -1,6 +1,6 @@
 // Web Worker for the forecast overlay (ticket 7.7). Driven by useForecast() in forecast.ts.
 
-import { combine, FrameCache, forecastSteps, sampleSteps, type ForecastBody, type ForecastGrid, type ForecastTracks } from "./forecastCore";
+import { combine, FrameCache, forecastSteps, halfGrid, sampleSteps, type ForecastBody, type ForecastGrid, type ForecastTracks } from "./forecastCore";
 
 export interface SetupMessage {
   type: "setup";
@@ -15,12 +15,15 @@ export interface RequestMessage {
   i: number;
   k: number;
   early: boolean;
+  rough: boolean; // half-resolution preview
 }
 
 export interface ReplyMessage {
   id: number;
   body: ForecastBody;
   early: boolean;
+  rough: boolean;
+  size: number; // cells per side of the arrays
   i: number;
   steps: number;
   now: Float32Array;
@@ -37,6 +40,7 @@ const scope = self as unknown as {
 };
 
 let cache: FrameCache | null = null;
+let roughCache: FrameCache | null = null;
 let stepCount = 0;
 let setupCount = 0;
 let wanted: RequestMessage | null = null;
@@ -51,8 +55,8 @@ const breathe = () => new Promise<void>((done) => { resume = done; channel.port2
 async function run() {
   if (running) return;
   running = true;
-  while (wanted && cache) {
-    const request = wanted, frames = cache, setup = setupCount;
+  while (wanted && cache && roughCache) {
+    const request = wanted, frames = request.rough ? roughCache : cache, setup = setupCount;
     const steps = forecastSteps(request.i, request.k, stepCount);
     const at = sampleSteps(request.i, steps);
     const window: Float32Array[] = [];
@@ -69,7 +73,7 @@ async function run() {
     wanted = null;
     const out = combine(window, at.map((t) => t - request.i));
     scope.postMessage(
-      { id: request.id, body: request.body, early: request.early, i: request.i, steps, ...out },
+      { id: request.id, body: request.body, early: request.early, rough: request.rough, size: Math.round(Math.sqrt(out.now.length)), i: request.i, steps, ...out },
       [out.now.buffer, out.delta.buffer, out.deltaAt.buffer, out.dip.buffer, out.dipAt.buffer],
     );
   }
@@ -79,6 +83,7 @@ async function run() {
 scope.onmessage = ({ data }) => {
   if (data.type === "setup") {
     cache = new FrameCache(data.grid, data.tracks);
+    roughCache = new FrameCache(halfGrid(data.grid), data.tracks);
     stepCount = data.tracks.sunAz.length;
     setupCount++;
     wanted = null;

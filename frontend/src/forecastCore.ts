@@ -26,6 +26,15 @@ export interface ForecastArrays {
   dipAt: Uint8Array; // steps after i at which that minimum first falls
 }
 
+// Every second cell of the grid, for the rough preview (ticket 7.12): a quarter of the cells, so
+// about a quarter of the cost per field. With an odd size (241) the edges and the centre line up.
+export function halfGrid(grid: ForecastGrid): ForecastGrid {
+  const n = grid.size, m = Math.floor((n - 1) / 2) + 1;
+  const heights = new Array<number>(m * m);
+  for (let r = 0; r < m; r++) for (let c = 0; c < m; c++) heights[r * m + c] = grid.heights[2 * r * n + 2 * c];
+  return { size: m, spacingM: grid.spacingM * 2, heights };
+}
+
 // k, cut short at the last step. Capped at 255 because dipAt is a byte.
 export function forecastSteps(i: number, k: number, stepCount: number): number {
   return Math.max(0, Math.min(Math.floor(k), stepCount - 1 - i, 255));
