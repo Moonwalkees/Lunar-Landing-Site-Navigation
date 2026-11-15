@@ -56,7 +56,8 @@ export default function App() {
 
   const maxIndex = analysis
     ? analysis.times.length - 1
-    : Math.max(0, Math.floor((site.days * 24) / site.stepHours));
+    // Guarded so a bad window or step can never turn the scrubber's maximum into NaN or Infinity (BUG-002).
+    : site.days > 0 && site.stepHours > 0 ? Math.max(0, Math.floor((site.days * 24) / site.stepHours)) : 0;
   // One valid index for every panel, however the window has changed since the last drag.
   const index = Math.min(timeIndex, maxIndex);
 
