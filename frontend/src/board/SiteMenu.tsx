@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 export interface SiteActions {
   onGo: () => void; // select the site and bring the map into view
   onSurface: () => void; // open the detail (surface) view for it
+  onCard: () => void; // open its mission card (ticket 8.1)
   onDelete: (() => void) | null; // null when it can't be deleted (the last site left)
 }
 
@@ -12,7 +13,7 @@ interface Props extends SiteActions {
 
 // The ⋮ menu for one site on each board row. The map console shows the same actions as buttons.
 // Clicks and keys inside it never reach the row underneath.
-export default function SiteMenu({ name, onGo, onSurface, onDelete }: Props) {
+export default function SiteMenu({ name, onGo, onSurface, onCard, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
@@ -47,6 +48,7 @@ export default function SiteMenu({ name, onGo, onSurface, onDelete }: Props) {
         <div className="smenu-list" role="menu" aria-label={name}>
           <button role="menuitem" onClick={run(onGo)} autoFocus>GO TO SITE</button>
           <button role="menuitem" onClick={run(onSurface)}>SURFACE VIEW</button>
+          <button role="menuitem" onClick={run(onCard)}>MISSION CARD</button>
           <button role="menuitem" className="del" disabled={!onDelete} onClick={onDelete ? run(onDelete) : undefined}
             title={onDelete ? undefined : "The board needs at least one site"}>DELETE</button>
         </div>

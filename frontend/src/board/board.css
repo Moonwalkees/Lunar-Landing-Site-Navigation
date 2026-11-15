@@ -89,6 +89,18 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .cbtn.del { color: var(--selected); border-color: var(--selected); }
 .cbtn.del:active { background: var(--selected); color: var(--space); }
 .cbtn:disabled { color: var(--ash); border-color: var(--ash-dim); cursor: default; }
+a.cbtn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* Mission card overlay (MissionCard.tsx, ticket 8.1): the card picture, its link, DOWNLOAD and COPY. */
+.mcard { position: fixed; inset: 0; z-index: 7; background: var(--space); display: flex; justify-content: center; align-items: flex-start; overflow-y: auto;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.mcard-box { width: min(560px, 100%); display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.mcard-pic { width: min(100%, calc((100dvh - 260px) * 0.7)); min-height: 240px; margin: 0 auto; border: 1px solid var(--ash-dim); display: flex; align-items: center; justify-content: center; color: var(--ash); }
+.mcard-pic img { display: block; width: 100%; height: auto; }
+.mcard .mcard-link input { font: 400 13px var(--font-mono); color: var(--regolith); }
+.mcard-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.mcard-btns .cbtn { white-space: nowrap; }
+@media (max-width: 640px) { .mcard-btns { grid-template-columns: 1fr 1fr; } .mcard-btns .cbtn:last-child { grid-column: 1 / -1; } }
 @media (max-width: 640px) {
   .console { left: var(--gutter-l); right: var(--gutter-r); width: auto; bottom: 10px; padding: 10px 12px; }
   .console .nm { font-size: 22px; } .kv b { font-size: 22px; }

@@ -105,7 +105,7 @@ Max content width 1280 px. Side gutters are at least 16 px plus the safe-area in
 ### Board
 - Columns: rank, site, score, sun %, comms %, both %, longest dark (hours), LIT and COMMS right now (`YES` in `--sun` / `--earth`, `NO` in `--ash` Doto 300). Row text 18 px, site names 20 px. (Changed from a single NOW status word at the user's request, 2026-11-15.)
 - **+ ADD SITE** in the sort bar opens a lat/lon form above the rows. Custom rows are not tagged.
-- Each row ends in a **⋮** menu: GO TO SITE, SURFACE VIEW, DELETE. The site console shows SURFACE VIEW and DELETE as full-width buttons (DELETE in `--selected`); GO TO SITE is left out there since the console is already on the map. DELETE is disabled when only one site is left.
+- Each row ends in a **⋮** menu: GO TO SITE, SURFACE VIEW, MISSION CARD, DELETE. The site console shows SURFACE VIEW, MISSION CARD and DELETE as full-width buttons (DELETE in `--selected`); GO TO SITE is left out there since the console is already on the map. DELETE is disabled when only one site is left.
 - Row height at least 56 px. The selected row has a `--umbra` fill and a 1 px (hairline) `--selected` bar on the left, and the site name turns `--selected`.
 - Sun % is `--sun`, comms % is `--earth`.
 - A row in `DARK·LOS` is ghosted (Doto 300, `--ash`).
@@ -127,6 +127,9 @@ Filled lamps carry state (`--sun`, `--earth`, `--ok`). SITES is always filled `-
 
 ### Console (selected site)
 Site name in `--selected` Doto 900, a small mono `LAT … · LON …°E` line, then five readouts: % sunlit, % contact, max dark, LIT and COMMS (YES in `--sun` / `--earth`, NO in `--ash`, as the board's columns). All five readouts get equal-width columns; the console is 520 px wide on desktop. On phones LIT and COMMS wrap to a second row. Its background follows the page background (`--bg`), which is slightly lighter (`--ash-dim` mixed into `--space`) while the selected site is lit. The text and readouts are never dimmed.
+
+### Mission card
+A 1200 px wide PNG of one site (ticket 8.1, `board/drawCard.ts`), opened from the console or the row menu in a full-screen panel with DOWNLOAD PNG, COPY LINK and CLOSE (`board/MissionCard.tsx`). It follows this document: black, the site name in `--selected` Doto 900, Geist Mono captions, Doto readouts in the series colours (score, % sunlit, % Earth contact, % Sun + Earth, longest dark), the terrain from above as round dots dithered to `--space` / `--ash` / `--regolith` with the 4x4 Bayer matrix and real shadows for the card's time, solid `--sun` and `--earth` discs for where they are in the sky, a three-band dot strip over the window (eclipses in `--selected`, the card's time as a `--regolith` column), the rover, the next eclipse, and a QR code. The QR code is dark modules on a `--regolith` square, the one light block on the card, because scanners read dark-on-light most reliably. The card keeps the time it was opened at. Its link (`board/share.ts`) carries the site, window, rover and time step as query parameters; the board applies them at load and then clears them from the address bar.
 
 ### Dot chart
 Three bands over the window (sun, Earth, both) in 6-hour cells. Unlit dots stay faintly visible as an unlit display. The scrub position is a column of `--regolith` dots. Dragging on the chart scrubs time.

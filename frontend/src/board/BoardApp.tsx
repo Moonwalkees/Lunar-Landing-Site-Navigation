@@ -8,6 +8,8 @@ import {
   type BoardSite, type MissionWindow, type Row, type SiteResult, type SortKey,
 } from "./data";
 import Detail3D from "./Detail3D";
+import MissionCard from "./MissionCard";
+import { clearShared, readShared, samePlace, sharedWindow } from "./share";
 import { DEFAULT_ROVER } from "../rovers";
 import { terrainTileFor } from "../terrain";
 import DotChart from "./DotChart";
@@ -22,6 +24,10 @@ const today = new Date().toISOString().slice(0, 10);
 // The dot-matrix departure board (doc/style.md). Every preset is analysed for the same window,
 // so the board ranks them side by side; one shared time index drives every panel.
 export default function BoardApp() {
+  // A mission card link (share.ts, ticket 8.1): read once, then taken out of the address bar.
+  const [shared] = useState(() => readShared(window.location.search));
+  useEffect(() => { if (shared) clearShared(); }, [shared]);
+
   // ---- sites ----
   const [presets, setPresets] = useState<BoardSite[]>([presetSite(FALLBACK_SITE)]);
   const [sitesError, setSitesError] = useState<string | null>(null);
@@ -31,22 +37,40 @@ export default function BoardApp() {
 
   useEffect(() => {
     let cancelled = false;
+    // A shared site is selected: the preset at the same place, or else a custom site added for it.
+    const placeShared = (list: BoardSite[]) => {
+      const want = shared?.site;
+      if (!want || touched.current) return false;
+      const match = list.find((p) => samePlace(p, want));
+      if (match) setSelectedId(match.id);
+      else {
+        setCustoms([{ id: "c:shared", ...want, custom: true }]);
+        setSelectedId("c:shared");
+      }
+      touched.current = true;
+      return true;
+    };
     getSites()
       .then((list) => {
-        if (cancelled || list.length === 0) return;
+        if (cancelled) return;
+        if (list.length === 0) { placeShared([presetSite(FALLBACK_SITE)]); return; }
         setPresets(list.map(presetSite));
-        if (!touched.current) setSelectedId(presetSite(defaultSite(list)).id);
+        if (!placeShared(list.map(presetSite)) && !touched.current) setSelectedId(presetSite(defaultSite(list)).id);
       })
-      .catch((e) => { if (!cancelled) setSitesError(e instanceof Error ? e.message : "Could not load sites."); });
+      .catch((e) => {
+        if (cancelled) return;
+        setSitesError(e instanceof Error ? e.message : "Could not load sites.");
+        placeShared([presetSite(FALLBACK_SITE)]);
+      });
     return () => { cancelled = true; };
-  }, []);
+  }, [shared]);
 
   const [hidden, setHidden] = useState<Set<string>>(new Set()); // presets deleted from the board
   const sites = useMemo(() => [...presets.filter((p) => !hidden.has(p.id)), ...customs], [presets, customs, hidden]);
 
   // ---- analyses: one per site for the shared window ----
   // A year by default, so Play runs through every season. 2 h steps keep the five analyses to a few seconds.
-  const [win, setWin] = useState<MissionWindow>({ startDate: today, days: 365, stepHours: 2, rover: DEFAULT_ROVER });
+  const [win, setWin] = useState<MissionWindow>(() => sharedWindow(shared, { startDate: today, days: 365, stepHours: 2, rover: DEFAULT_ROVER }));
   const [results, setResults] = useState<Record<string, SiteResult>>({});
   const asked = useRef(new Map<string, string>()); // site id -> key already requested
 
@@ -66,7 +90,7 @@ export default function BoardApp() {
   }, [sites, win]);
 
   // ---- shared time ----
-  const [timeIndex, setTimeIndex] = useState(0);
+  const [timeIndex, setTimeIndex] = useState(() => shared?.t ?? 0);
   const ready = sites.flatMap((s) => {
     const r = results[s.id];
     return r?.status === "ready" && r.key === resultKey(s, win) ? [r.analysis] : [];
@@ -115,6 +139,9 @@ export default function BoardApp() {
     }
   }, []);
   const closeDetail = useCallback(() => setOpen3D(false), []);
+  // The mission card keeps the time step it was opened at (null while closed).
+  const [cardAt, setCardAt] = useState<number | null>(null);
+  const closeCard = useCallback(() => setCardAt(null), []);
 
   const [adding, setAdding] = useState(false);
   const addCustom = (s: { name: string; lat: number; lon: number }) => {
@@ -133,6 +160,7 @@ export default function BoardApp() {
   const actions = (id: string) => ({
     onGo: () => select(id, true),
     onSurface: () => { select(id); setOpen3D(true); },
+    onCard: () => { select(id); setCardAt(index); },
     onDelete: sites.length > 1 ? () => removeSite(id) : null,
   });
   const selActions = actions(sel.id);
@@ -213,6 +241,7 @@ export default function BoardApp() {
             {/* The row ⋮ menu's actions as buttons (minus GO TO SITE: the console is already on the map). */}
             <div className="console-btns">
               <button className="cbtn" aria-pressed={open3D} onClick={selActions.onSurface}>{sel3D ? "SURFACE VIEW" : "2D MAP VIEW"}</button>
+              <button className="cbtn" aria-pressed={cardAt !== null} onClick={selActions.onCard}>MISSION CARD</button>
               <button className="cbtn del" disabled={!selActions.onDelete} onClick={selActions.onDelete ?? undefined}
                 title={selActions.onDelete ? undefined : "The board needs at least one site"}>DELETE</button>
             </div>
@@ -246,6 +275,10 @@ export default function BoardApp() {
       {open3D && (
         <Detail3D name={sel.name} lat={sel.lat} lon={sel.lon} sun={sun} earth={earth}
           analysis={a ?? null} index={ai} onScrub={setTimeIndex} onClose={closeDetail} />
+      )}
+
+      {cardAt !== null && (
+        <MissionCard site={sel} analysis={a ?? null} index={a ? Math.min(cardAt, a.times.length - 1) : cardAt} win={win} grid={grid} onClose={closeCard} />
       )}
 
       <TimeDock
