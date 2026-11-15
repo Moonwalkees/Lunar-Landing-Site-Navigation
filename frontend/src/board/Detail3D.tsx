@@ -1,10 +1,11 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import TerrainMap from "../components/TerrainMap";
 import type { SkyPosition, View3D } from "../components/TerrainView3D";
+import { terrainTileFor } from "../terrain";
 import type { Analysis } from "../types";
 import RoverPanel from "./RoverPanel";
 
-// The Unity build (55 MB, doc/3d-view.md) only loads once the user picks surface or orbit.
+// The Unity build (63 MB, doc/3d-view.md) only loads once the user picks surface or orbit.
 const TerrainView3D = lazy(() => import("../components/TerrainView3D"));
 
 interface Props {
@@ -32,7 +33,10 @@ const VIEWS: { id: View; label: string }[] = [
 // 2D MAP is the bird's-eye map (doc/2d-view.md) with its pan / zoom / height readout.
 // Agreed with the user: the dot-matrix dither is for the overview map only; these are unfiltered.
 export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, onClose }: Props) {
-  const [view, setView] = useState<View>("orbit");
+  // A site with no 3D terrain (the Apollo presets, most custom sites) opens on the 2D map, and its
+  // ORBIT and SURFACE tabs are off: the Unity view would only say there is nothing to show.
+  const has3D = terrainTileFor(lat, lon) !== null;
+  const [view, setView] = useState<View>(has3D ? "orbit" : "birdseye");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -41,7 +45,8 @@ export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, 
   }, [onClose]);
 
   const viewButtons = VIEWS.map((v) => (
-    <button key={v.id} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+    <button key={v.id} aria-pressed={view === v.id} onClick={() => setView(v.id)}
+      disabled={v.id !== "birdseye" && !has3D} title={v.id !== "birdseye" && !has3D ? "No 3D terrain for this site" : undefined}>
       {v.label}
     </button>
   ));
@@ -50,7 +55,10 @@ export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, 
     <div className="u3d" role="dialog" aria-modal="false" aria-label={"Surface view of " + name}>
       <div className="u3d-head">
         <div>
-          <div className="mono">{view === "birdseye" ? "2D terrain map · LOLA" : "3D terrain · LOLA · true scale"}</div>
+          <div className="mono">
+            {view === "birdseye" ? "2D terrain map · LOLA" : "3D terrain · LOLA · true scale"}
+            {!has3D && " · no 3D terrain for this site"}
+          </div>
           <div className="nm">{name}</div>
         </div>
         <button className="cbtn" onClick={onClose}>CLOSE</button>

@@ -46,10 +46,14 @@ export function roverAt(analysis: Analysis, index: number, capacity: number): Ro
     state = kind === "full" ? "IN SUN, FULL" : "CHARGING";
     hint = dark ? "shadow in " + dark : "in Sun to the end of the window";
   } else {
-    const empty = until((i) => analysis.batteryWh[i] <= 0.5);
+    // Whichever comes first: the battery running out, or the Sun coming back to recharge it.
+    let next = index + 1;
+    while (next < analysis.times.length && analysis.batteryWh[next] > 0.5 && analysis.sun.fraction[next] <= 0) next++;
+    const wait = span((next - index) * analysis.stepHours);
     kind = "battery";
     state = "ON BATTERY";
-    hint = empty ? "empty in " + empty : "lasts to the end of the window";
+    hint = next >= analysis.times.length ? "lasts to the end of the window"
+      : analysis.batteryWh[next] <= 0.5 ? "empty in " + wait : "Sun returns in " + wait;
   }
   return { kind, state, hint, sun, power, battery, capacity, link: analysis.comms[index] };
 }

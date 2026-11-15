@@ -1,3 +1,4 @@
+import { terrainTileFor } from "../terrain";
 import type { Metrics } from "../types";
 import { hours, pad2, pct, type Row, type SortKey } from "./data";
 import SiteMenu, { type SiteActions } from "./SiteMenu";
@@ -89,7 +90,10 @@ export default function Board({ rows, selectedId, sortKey, onSort, onSelect, add
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } }}
             >
               <span className="rk">{a ? pad2(n + 1) : "--"}</span>
-              <span className="nm">{site.name}</span>
+              <span className="nm">
+                {site.name}
+                {!terrainTileFor(site.lat, site.lon) && <span className="tag2d" title="No 3D terrain here: the detail view shows the 2D map only">2D ONLY</span>}
+              </span>
               <span className="stats">
                 <span className={"r v" + isBest(row.score, best.score, 0)} data-l="SCR">{row.score ?? "—"}</span>
                 <span className={"r v sun" + isBest(m?.pctSunlit, best.sun)} data-l="SUN">{pct(m?.pctSunlit)}</span>

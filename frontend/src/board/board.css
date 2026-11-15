@@ -216,6 +216,9 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
   padding: 12px var(--gutter-r) 12px var(--gutter-l); gap: 10px; }
 .u3d-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 .u3d-head .nm { font-weight: 900; font-size: 28px; line-height: 1; color: var(--selected); text-transform: uppercase; }
+/* Marks a site the 3D views have no terrain for (Apollo presets, most custom sites). */
+.tag2d { display: inline-block; margin-left: 8px; padding: 1px 5px; border: 1px dashed var(--ash-dim); vertical-align: middle;
+  font: 400 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); white-space: nowrap; }
 .u3d-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 /* Rover readout over the detail views (RoverPanel.tsx). Status word and values change in hard steps. */
 .rover-panel { position: absolute; top: 8px; right: 8px; z-index: 2; width: 264px; max-width: calc(100% - 16px); pointer-events: none;

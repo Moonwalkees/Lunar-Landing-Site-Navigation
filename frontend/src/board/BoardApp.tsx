@@ -8,6 +8,7 @@ import {
   type BoardSite, type MissionWindow, type Row, type SiteResult, type SortKey,
 } from "./data";
 import Detail3D from "./Detail3D";
+import { terrainTileFor } from "../terrain";
 import DotChart from "./DotChart";
 import HeroMap, { type MapPin } from "./HeroMap";
 import UiSwitch from "../UiSwitch";
@@ -134,6 +135,7 @@ export default function BoardApp() {
     onDelete: sites.length > 1 ? () => removeSite(id) : null,
   });
   const selActions = actions(sel.id);
+  const sel3D = terrainTileFor(sel.lat, sel.lon) !== null; // the 3D views only have terrain for some south pole areas
 
   // The whole page lightens while the selected site is in sunlight (board.css: html.lit).
   const siteLit = selRow.state === "both" || selRow.state === "sunonly";
@@ -195,7 +197,10 @@ export default function BoardApp() {
           <div className="hud hint mono">Drag orbit · pinch zoom · tap a pin</div>
           <div className="hud console">
             <div className="nm">{sel.name}</div>
-            <div className="mono coord">LAT {sel.lat.toFixed(2)}° · LON {sel.lon.toFixed(2)}°E</div>
+            <div className="mono coord">
+              LAT {sel.lat.toFixed(2)}° · LON {sel.lon.toFixed(2)}°E
+              {!sel3D && <span className="tag2d">2D ONLY · NO 3D TERRAIN HERE</span>}
+            </div>
             <div className="kv">
               <div><span className="mono">% sunlit</span><b className="s">{pct(a?.metrics.pctSunlit)}</b></div>
               <div><span className="mono">% contact</span><b className="e">{pct(a?.metrics.pctEarthVisible)}</b></div>
@@ -206,7 +211,7 @@ export default function BoardApp() {
             </div>
             {/* The row ⋮ menu's actions as buttons (minus GO TO SITE: the console is already on the map). */}
             <div className="console-btns">
-              <button className="cbtn" aria-pressed={open3D} onClick={selActions.onSurface}>SURFACE VIEW</button>
+              <button className="cbtn" aria-pressed={open3D} onClick={selActions.onSurface}>{sel3D ? "SURFACE VIEW" : "2D MAP VIEW"}</button>
               <button className="cbtn del" disabled={!selActions.onDelete} onClick={selActions.onDelete ?? undefined}
                 title={selActions.onDelete ? undefined : "The board needs at least one site"}>DELETE</button>
             </div>

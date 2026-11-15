@@ -1,9 +1,10 @@
 import { Suspense, lazy, useState, type ReactNode } from "react";
 import TerrainMap from "./TerrainMap";
+import { TERRAIN_TILES, terrainTileFor } from "../terrain";
 import type { SkyPosition, View3D } from "./TerrainView3D";
 
 // The orbit and surface views are Unity WebGL (doc/3d-view.md). They are only loaded, and the
-// 55 MB build only downloaded, once the user picks one of them.
+// 63 MB build only downloaded, once the user picks one of them.
 const TerrainView3D = lazy(() => import("./TerrainView3D"));
 
 interface Props {
@@ -27,13 +28,17 @@ const VIEWS: { id: View; label: string; title?: string }[] = [
 // Terrain around the site. Opens on the light bird's-eye map; orbit and surface are the 3D views.
 export default function TerrainView({ overlay, ...props }: Props) {
   const [view, setView] = useState<View>("birdseye");
+  // The 3D views only have terrain for some south pole areas; elsewhere the panel stays on the map.
+  const has3D = terrainTileFor(props.lat, props.lon) !== null;
+  const shown: View = has3D ? view : "birdseye";
 
   const viewButtons = VIEWS.map((v) => (
     <button
       key={v.id}
-      className={view === v.id ? "" : "secondary"}
-      aria-pressed={view === v.id}
-      title={v.title}
+      className={shown === v.id ? "" : "secondary"}
+      aria-pressed={shown === v.id}
+      disabled={v.id !== "birdseye" && !has3D}
+      title={v.id !== "birdseye" && !has3D ? "No 3D terrain for this site." : v.title}
       onClick={() => setView(v.id)}
     >
       {v.label}
@@ -45,7 +50,7 @@ export default function TerrainView({ overlay, ...props }: Props) {
       <h2>Terrain view</h2>
       <div className="terrain-wrap">
       {overlay}
-      {view === "birdseye" ? (
+      {shown === "birdseye" ? (
         <TerrainMap {...props} viewButtons={viewButtons} />
       ) : (
         <Suspense
@@ -56,8 +61,13 @@ export default function TerrainView({ overlay, ...props }: Props) {
             </>
           }
         >
-          <TerrainView3D {...props} view={view} viewButtons={viewButtons} />
+          <TerrainView3D {...props} view={shown} viewButtons={viewButtons} />
         </Suspense>
+      )}
+      {!has3D && (
+        <p className="muted terrain-hint">
+          2D map only here. The 3D views have terrain around: {TERRAIN_TILES.map((t) => t.name).join(", ")}.
+        </p>
       )}
       </div>
     </section>

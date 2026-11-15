@@ -11,12 +11,12 @@ This view is not in [scope.md](scope.md) yet (see ticket 4.9). The terrain panel
 | React panel (view buttons) | `frontend/src/components/TerrainView.tsx` |
 | 3D view inside the panel | `frontend/src/components/TerrainView3D.tsx` |
 | Which areas have terrain | `frontend/src/terrain.ts` |
-| The built view (55 MB) | `frontend/public/unity/` |
+| The built view (63 MB) | `frontend/public/unity/` |
 
 `frontend/public/unity/` holds two folders that must stay together:
 
 - `Build/` (25 MB) is the view itself, downloaded when the page opens.
-- `StreamingAssets/` (29 MB) is terrain the view downloads only when it needs it: the surroundings of the starting area (3.7 MB) and each other area (about 7.5 MB).
+- `StreamingAssets/` (37 MB) is terrain the view downloads only when it needs it: the surroundings of the starting area (3.7 MB) and each other area (about 7.5 MB).
 
 The files are gzip-compressed and unpack themselves in the browser, so any static host works with no server settings.
 
@@ -45,11 +45,12 @@ Updates are cheap, so the props can change on every scrubber step. The view butt
 | Connecting Ridge | X -18998 to -3002, Y -19998 to -4002 | LOLA 5 m, shown at about 8 m |
 | Shackleton rim | X -8998 to 6998, Y -14998 to 998 | LOLA 5 m, shown at about 8 m |
 | Shackleton crater | X -296 to 15696, Y -14396 to 1596 | LOLA 20 m |
-| Malapert Massif | X -1856 to 14136, Y 113184 to 129176 | LOLA 20 m |
+| Peak near Shackleton | X 22004 to 37996, Y -27996 to -12004 | LOLA 5 m (NASA PGDA Site07), shown at about 8 m |
+| Malapert Massif | X -10995 to 9995, Y 111005 to 131995 | LOLA 5 m (NASA PGDA Site23), shown at about 10 m; 21 km square |
 
-Each is a 16 km square (a height every 8 m) wrapped in three coarser levels: every 31 m out to 16 km from its centre, every 125 m out to 40 km, and every 500 m out to 160 km. The 31 m level is there so detail does not stop dead at the square's edge. A site in another area makes the view download and switch to it (about 5 MB). A site outside all of them shows a message in the panel and the view stays where it was. Areas overlap; the view stays on the current one while it covers the site.
+Each is a 16 km square (Malapert 21 km; a height every 8 to 10 m) wrapped in three coarser levels: every 31 m out to 16 km from its centre, every 125 m out to 40 km, and every 500 m out to 160 km. The 31 m level is there so detail does not stop dead at the square's edge. A site in another area makes the view download and switch to it (about 5 MB). A site outside all of them shows a message in the panel and the view stays where it was. Areas overlap; the view stays on the current one while it covers the site.
 
-The three south pole presets in `backend/app/sites.py` (served by `GET /sites`) all have 3D terrain. The Apollo presets do not.
+The four south pole presets in `backend/app/sites.py` (served by `GET /sites`) all have 3D terrain. The Apollo presets do not: both UIs mark such sites as 2D only and switch their 3D tabs off (ticket 4.28), using `terrainTileFor` in `frontend/src/terrain.ts`.
 
 ## What the picture can and can't tell you
 
