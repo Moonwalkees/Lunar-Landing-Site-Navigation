@@ -7,6 +7,7 @@
   --ash: #8C867A;
   --ash-dim: #3A3832;
   --sun: #FFB43B;
+  --power: #F2D48A; /* power band: a paler sun, so SUN and POWER read apart */
   --earth: #2FB5C4;
   --ok: #7BD66B;
   --selected: #FF5A36;
@@ -127,8 +128,13 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .row[aria-selected="true"] { box-shadow: inset 1px 0 0 var(--selected); }
 .row[aria-selected="true"] .nm { color: var(--selected); }
 .row .rk { color: var(--ash); }
-/* Real preset names are long ("Shackleton crater (Artemis III)"), so they wrap to two lines. */
-.row .nm { font-weight: 800; font-size: 20px; line-height: 1.1; max-height: 2.2em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+/* Names wrap to at most three lines; a trailing "(...)" is shown as a tag under the name (splitName). */
+.row .nm { font-weight: 800; font-size: 20px; line-height: 1.1; min-width: 0; }
+.row .nm-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; max-height: 3.3em; overflow: hidden; overflow-wrap: break-word; }
+.row .tagq { display: block; margin-top: 3px; font: 400 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); white-space: pre-line; }
+/* In a row the 2D ONLY tag is plain text, flush with the name, like the qualifier tag. */
+.row .tag2d { display: block; margin-top: 3px; padding: 0; border: 0; }
+.console .tag2d { margin-left: 8px; }
 .row .sun { color: var(--sun); } .row .com { color: var(--earth); }
 /* LIT and COMMS right now: YES in the series colour, NO in grey. */
 .row .yn { font-weight: 800; white-space: nowrap; color: var(--ash); }
@@ -158,6 +164,15 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-weight: 500; font-size: 18px; color: var(--ash); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .legend small { font: 400 11px var(--font-mono); letter-spacing: .08em; margin-left: 6px; }
+/* Eclipse line under the chart (DotChart.tsx). */
+.eclipse-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; color: var(--ash); }
+.eclipse-line.on { color: var(--selected); }
+.rover-panel .eclipse { color: var(--selected); }
+/* Eclipse in the 3D view (Detail3D.tsx): a badge while one is under way, and the jump button. */
+.eclipse-badge { position: absolute; top: 8px; left: 8px; z-index: 2; pointer-events: none; padding: 4px 8px;
+  font: 800 18px var(--font-dot); letter-spacing: .03em; color: var(--space); background: var(--selected); }
+.u3d .actions button.eclipse-go { color: var(--selected); border-color: var(--selected); }
+.u3d .actions button.eclipse-go:active { color: var(--space); background: var(--selected); }
 .empty { color: var(--ash); font-weight: 300; padding: 12px 0; }
 .compass { display: flex; justify-content: space-between; margin-top: 4px; }
 .readout { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-size: 18px; }
@@ -176,6 +191,8 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .add-chip[aria-expanded="true"] { color: var(--ash); border-color: var(--ash-dim); }
 .add-site { margin: 24px 0 16px; }
 .form-row .mono { margin-left: 6px; }
+.rover-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 14px 0 10px; }
+.rover-pick .rover-src { flex-basis: 100%; }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field input { font: 700 20px var(--font-dot); color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); border-radius: 0; min-height: 44px; padding: 0 10px; width: 100%; color-scheme: dark; }
@@ -217,7 +234,7 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .u3d-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 .u3d-head .nm { font-weight: 900; font-size: 28px; line-height: 1; color: var(--selected); text-transform: uppercase; }
 /* Marks a site the 3D views have no terrain for (Apollo presets, most custom sites). */
-.tag2d { display: inline-block; margin-left: 8px; padding: 1px 5px; border: 1px dashed var(--ash-dim); vertical-align: middle;
+.tag2d { display: inline-block; margin: 3px 0 0; padding: 1px 5px; border: 1px dashed var(--ash-dim); vertical-align: middle;
   font: 400 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); white-space: nowrap; }
 .u3d-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 /* Rover readout over the detail views (RoverPanel.tsx). Status word and values change in hard steps. */

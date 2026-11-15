@@ -4,10 +4,11 @@ import { FALLBACK_SITE, defaultSite } from "../sites";
 import type { Preset, TerrainGrid } from "../types";
 import Board from "./Board";
 import {
-  STATE_LABEL, azDeg, cellSteps, hours, pct, rankRows, resultKey, score, signedDeg, stamp, stateAt,
+  STATE_LABEL, azDeg, cellSteps, hours, pct, rankRows, resultKey, score, signedDeg, splitName, stamp, stateAt,
   type BoardSite, type MissionWindow, type Row, type SiteResult, type SortKey,
 } from "./data";
 import Detail3D from "./Detail3D";
+import { DEFAULT_ROVER } from "../rovers";
 import { terrainTileFor } from "../terrain";
 import DotChart from "./DotChart";
 import HeroMap, { type MapPin } from "./HeroMap";
@@ -45,7 +46,7 @@ export default function BoardApp() {
 
   // ---- analyses: one per site for the shared window ----
   // A year by default, so Play runs through every season. 2 h steps keep the five analyses to a few seconds.
-  const [win, setWin] = useState<MissionWindow>({ startDate: today, days: 365, stepHours: 2 });
+  const [win, setWin] = useState<MissionWindow>({ startDate: today, days: 365, stepHours: 2, rover: DEFAULT_ROVER });
   const [results, setResults] = useState<Record<string, SiteResult>>({});
   const asked = useRef(new Map<string, string>()); // site id -> key already requested
 
@@ -96,7 +97,7 @@ export default function BoardApp() {
   const earth = a ? { az: a.earth.az[ai], el: a.earth.el[ai] } : null;
 
   const pins: MapPin[] = ranked.map((r, n) => ({
-    id: r.site.id, name: r.site.name, lat: r.site.lat, lon: r.site.lon,
+    id: r.site.id, name: splitName(r.site.name)[0], lat: r.site.lat, lon: r.site.lon,
     rank: r.analysis ? n + 1 : null, score: r.score, dark: r.state === "dark",
   }));
 
@@ -244,7 +245,7 @@ export default function BoardApp() {
 
       {open3D && (
         <Detail3D name={sel.name} lat={sel.lat} lon={sel.lon} sun={sun} earth={earth}
-          analysis={a ?? null} index={ai} onClose={closeDetail} />
+          analysis={a ?? null} index={ai} onScrub={setTimeIndex} onClose={closeDetail} />
       )}
 
       <TimeDock

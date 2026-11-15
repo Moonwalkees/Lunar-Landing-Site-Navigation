@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Analysis } from "../types";
-import { CELL_HOURS, toCells } from "./data";
+import { CELL_HOURS, stamp, toCells } from "./data";
+import { eclipseAt, eclipses, nextEclipse, pctCovered } from "../eclipses";
 import { color } from "./palette";
 
 // Shared dot grid (doc/style.md > Dot grid): Doto's 0.1 em pitch at the 22 px board text.
@@ -75,22 +76,39 @@ export default function DotChart({ analysis, timeIndex, maxIndex, onScrub }: Pro
     const off = document.createElement("canvas");
     const g = prepare(off, w, ROWS * PITCH);
     const N = cells.sun.length, cols = Math.floor(w / PITCH), x0 = (w - cols * PITCH) / 2;
-    const C = { sun: color("--sun"), earth: color("--earth"), ok: color("--ok"), reg: color("--regolith"), dim: color("--ash-dim") };
+    const C = { sun: color("--sun"), power: color("--power"), earth: color("--earth"), ok: color("--ok"), reg: color("--regolith"), dim: color("--ash-dim") };
     for (let i = 0; i < cols; i++) {
       const c = Math.min(N - 1, Math.floor((i / cols) * N)), x = x0 + i * PITCH + PITCH / 2;
       for (const b of BANDS) {
         for (let r = 0; r < b.h; r++) {
           const y = (b.r0 + r) * PITCH + PITCH / 2;
           let on: boolean, fill: string;
-          if (b.key === "power") { on = b.h - r <= Math.round((cells.power[c] / maxP) * b.h); fill = C.sun; }
+          if (b.key === "power") { on = b.h - r <= Math.round((cells.power[c] / maxP) * b.h); fill = C.power; }
           else if (b.key === "battery") { on = b.h - r <= Math.round((cells.battery[c] / maxB) * b.h); fill = C.reg; }
           else { on = cells[b.key][c]; fill = b.key === "sun" ? C.sun : b.key === "earth" ? C.earth : C.ok; }
           dot(g, x, y, on ? fill : C.dim, on ? 1 : 0.55);
         }
       }
     }
+    // Eclipses: the SUN band in --selected wherever any step under a column has the Earth in front of
+    // the Sun. Checked per column, not per sampled cell, so an eclipse of a few hours always shows.
+    if (analysis) {
+      const be = analysis.sun.behindEarth, n = be.length, sunBand = BANDS[0], mark = color("--selected");
+      for (let i = 0; i < cols; i++) {
+        const a = Math.floor((i / cols) * n), b = Math.max(a + 1, Math.floor(((i + 1) / cols) * n));
+        let hit = false;
+        for (let k = a; k < b && !hit; k++) hit = be[k] > 0;
+        if (!hit) continue;
+        // Three columns wide, so a few hours in a year-long chart is still easy to see.
+        for (const c of [i - 1, i, i + 1]) {
+          if (c < 0 || c >= cols) continue;
+          const x = x0 + c * PITCH + PITCH / 2;
+          for (let r = 0; r < sunBand.h; r++) dot(g, x, (sunBand.r0 + r) * PITCH + PITCH / 2, mark);
+        }
+      }
+    }
     bands.current = off;
-  }, [cells, w, maxP, maxB]);
+  }, [cells, w, maxP, maxB, analysis]);
 
   useEffect(() => {
     const el = cv.current, off = bands.current;
@@ -133,13 +151,37 @@ export default function DotChart({ analysis, timeIndex, maxIndex, onScrub }: Pro
             <span><i style={{ background: "var(--sun)" }} />SUN</span>
             <span><i style={{ background: "var(--earth)" }} />EARTH</span>
             <span><i style={{ background: "var(--ok)" }} />BOTH</span>
-            <span><i style={{ background: "var(--sun)" }} />POWER<small>0–{Math.round(maxP)} W</small></span>
+            <span><i style={{ background: "var(--power)" }} />POWER<small>0–{Math.round(maxP)} W</small></span>
             <span><i style={{ background: "var(--regolith)" }} />BATT<small>0–{Math.round(maxB)} Wh</small></span>
+            <span><i style={{ background: "var(--selected)" }} />ECLIPSE</span>
           </div>
+          <EclipseLine analysis={analysis} timeIndex={timeIndex} onScrub={onScrub} />
         </>
       ) : (
         <div className="empty">AWAITING DATA</div>
       )}
     </aside>
+  );
+}
+
+// Under the chart: the eclipse under the scrubber, or the next one with a button that jumps to it.
+function EclipseLine({ analysis, timeIndex, onScrub }: { analysis: Analysis; timeIndex: number; onScrub: (i: number) => void }) {
+  const list = useMemo(() => eclipses(analysis), [analysis]);
+  if (list.length === 0) return <div className="eclipse-line mono">No eclipse in this window</div>;
+  const now = eclipseAt(list, timeIndex);
+  if (now) {
+    const covered = analysis.sun.behindEarth[timeIndex] ?? 0;
+    return (
+      <div className="eclipse-line on mono">
+        Eclipse now · {pctCovered(covered)} of the Sun behind the Earth · peak {pctCovered(now.covered)} at {stamp(analysis.times[now.peak])}
+      </div>
+    );
+  }
+  const next = nextEclipse(list, timeIndex)!;
+  return (
+    <div className="eclipse-line mono">
+      <span>Next eclipse · {stamp(analysis.times[next.peak])} · up to {pctCovered(next.covered)} of the Sun</span>
+      <button className="chip" onClick={() => onScrub(next.peak)}>GO TO ECLIPSE</button>
+    </div>
   );
 }

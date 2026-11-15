@@ -1,3 +1,4 @@
+import type { RoverSpec } from "../rovers";
 // Pure helpers for the board UI (doc/style.md). Every value here is derived from POST /analyze.
 
 import type { Analysis } from "../types";
@@ -14,6 +15,7 @@ export interface MissionWindow {
   startDate: string; // YYYY-MM-DD
   days: number;
   stepHours: number;
+  rover: RoverSpec; // the rover every site is analysed for
 }
 
 export type SiteResult =
@@ -23,7 +25,7 @@ export type SiteResult =
 
 // One analysis covers one site over one window. A result is stale when this key changes.
 export const resultKey = (s: BoardSite, w: MissionWindow) =>
-  [s.lat, s.lon, w.startDate, w.days, w.stepHours].join("|");
+  [s.lat, s.lon, w.startDate, w.days, w.stepHours, w.rover.solarW, w.rover.batteryWh, w.rover.loadW].join("|");
 
 // ---------- state words (doc/style.md > Status words) ----------
 
@@ -136,6 +138,16 @@ export function offsetM(from: { lat: number; lon: number }, to: { lat: number; l
 }
 
 // ---------- formatting ----------
+
+// A site name and its trailing qualifier: "Peak near Shackleton (Artemis III, 2022)" gives
+// ["Peak near Shackleton", "Artemis III" + newline + "2022 list"], one part per line (a bare year is
+// NASA's list of that year). The board shows the qualifier as a small tag, so the name fits its column.
+export function splitName(name: string): [string, string | null] {
+  const m = /^(.*\S)\s*\(([^()]+)\)\s*$/.exec(name);
+  if (!m) return [name, null];
+  const parts = m[2].split(/,\s*/).map((p) => (/^\d{4}$/.test(p) ? p + " list" : p));
+  return [m[1], parts.join("\n")];
+}
 
 export const pad2 = (n: number) => String(n).padStart(2, "0");
 export const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : v.toFixed(1));

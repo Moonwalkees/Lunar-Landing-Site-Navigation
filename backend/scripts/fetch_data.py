@@ -7,6 +7,7 @@ Usage (from backend/):
 
 import argparse
 import math
+import os
 import re
 import shutil
 import sys
@@ -47,8 +48,10 @@ KERNELS = [
 def download(url: str, dest: Path) -> None:
     """Download url to dest via a .part file, renamed only once complete."""
     part = dest.with_name(dest.name + ".part")
+    # Cloudflare (R2 public buckets) answers 403 to Python's default "Python-urllib" User-Agent.
+    request = urllib.request.Request(url, headers={"User-Agent": "lunar-fetch-data/1.0"})
     try:
-        with urllib.request.urlopen(url, timeout=60) as resp, open(part, "wb") as out:
+        with urllib.request.urlopen(request, timeout=60) as resp, open(part, "wb") as out:
             shutil.copyfileobj(resp, out)
         part.replace(dest)
     finally:
@@ -194,6 +197,19 @@ def fetch_dems(args: argparse.Namespace) -> None:
     GeoTIFFs record that scale, so ``rasterio`` readers multiply by ``dataset.scales[0]``.
     The polar map is cropped to the area around the preset south pole sites.
     """
+    data_url = os.environ.get("DATA_URL", "").strip().rstrip("/")
+    if data_url:
+        # Prebuilt GeoTIFFs hosted somewhere fast (e.g. a public R2 bucket): skip the ~2.4 GB raw download.
+        DEM_DIR.mkdir(parents=True, exist_ok=True)
+        for name in (POLAR_OUT, GLOBAL_OUT):
+            dest = DEM_DIR / name
+            if dest.exists():
+                print(f"skip      {name} (already present)")
+                continue
+            print(f"download  {name} <- {data_url}/{name}")
+            download(f"{data_url}/{name}", dest)
+        return
+
     import numpy as np
     import rasterio
     from rasterio.enums import Resampling

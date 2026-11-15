@@ -1,3 +1,5 @@
+import type { RoverSpec } from "./rovers";
+
 // Shapes the panels expect. Placeholder only: the backend will fill these later.
 
 // One entry from GET /sites.
@@ -14,6 +16,7 @@ export interface SiteInput {
   startDate: string; // YYYY-MM-DD
   days: number;
   stepHours: number;
+  rover?: RoverSpec; // left out, the backend uses VIPER
 }
 
 export interface Metrics {
@@ -51,6 +54,7 @@ export interface Analysis {
   site: { lat: number; lon: number; heightM: number; mastM: number };
   times: string[]; // ISO UTC
   stepHours: number;
+  rover: { solarW: number; batteryWh: number; loadW: number }; // the numbers the analysis used
   skyline: { az: number[]; el: number[] }; // 720 values, one every half degree
   sun: { az: number[]; el: number[]; fraction: number[]; behindEarth: number[] };
   earth: { az: number[]; el: number[]; margin: number[] };

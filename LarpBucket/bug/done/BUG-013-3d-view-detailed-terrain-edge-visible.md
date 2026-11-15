@@ -1,10 +1,10 @@
-# BUG-006 The edge of the detailed terrain is easy to see in the 3D view
+# BUG-013 The edge of the detailed terrain is easy to see in the 3D view
 
 Status: done
 Owner: Aiken
 Severity: low
 Affects: frontend / 3D terrain view (orbit and surface views)
-Note: done. The 3D view now draws a band of 31 m terrain around the detailed square and blends the square's outer rows into it. New build and four `*_near.raw` files in `frontend/public/unity/`.
+Note: done (first filed as BUG-006, renumbered because that number was also used for the keyboard bug). The 3D view now draws a band of 31 m terrain around the detailed square and blends the square's outer rows into it. New build and four `*_near.raw` files in `frontend/public/unity/`.
 
 ## Summary
 In orbit view, zoomed out, the 16 km square of detailed terrain ends in a straight line, with smoother and slightly brighter ground beyond it.

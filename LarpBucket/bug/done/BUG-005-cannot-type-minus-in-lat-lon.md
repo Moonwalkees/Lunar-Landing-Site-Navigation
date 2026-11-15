@@ -1,9 +1,10 @@
 # BUG-005 Can't type a lone "-" in the lat/lon inputs
 
-Status: open
-Owner:
+Status: done
+Owner: Aiken
 Severity: medium
 Affects: frontend site form
+Note: done. Board UI fixed by Thomas Frew (text inputs in `board/Panels.tsx`); classic UI fixed the same way in `components/SiteForm.tsx`.
 
 ## Summary
 Typing "-" to start a negative latitude or longitude snaps the field back to 0.
@@ -24,4 +25,19 @@ These are controlled `<input type="number">` elements with `value={site.lat}` an
 `frontend/src/components/SiteForm.tsx:46-52` (also `:60` and `:64-65`)
 
 ## Solution
-_Filled in when the ticket is done. See "Solution section" in CLAUDE.md._
+**Chosen:** Text inputs with `inputMode="decimal"` in place of `type="number"`, holding what the user types as text and passing a number on only when it parses and is in range. The board UI was done this way in `board/Panels.tsx`; the classic UI now uses the same approach through `NumberField` in `components/SiteForm.tsx` for latitude, longitude, window and step.
+
+**Strengths**
+- A leading "-" stays in the box, so negative south pole coordinates can be typed in order.
+- Phones still get a numeric keypad.
+- A half-typed value ("-", "-89.") never reaches the app as 0.
+
+**Limitations**
+- No spinner arrows on these boxes any more.
+- A lone "-" shows the range message until a digit follows.
+
+**Alternatives considered**
+| Option | Why not chosen | Trade-off vs chosen |
+|---|---|---|
+| Keep `type="number"` and ignore empty values | The browser still reports "-" as empty, and the box can still lose it | Spinner arrows kept |
+| Separate N/S and E/W selectors | More controls for a common case | No minus sign needed |

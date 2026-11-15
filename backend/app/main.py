@@ -44,12 +44,21 @@ class Site(BaseModel):
     lon: float
 
 
+class Rover(BaseModel):
+    """A rover's power numbers. Left out, the analysis uses NASA's VIPER (constants.py)."""
+
+    solarW: float = Field(gt=0, le=100_000)       # solar power with the whole Sun in view
+    batteryWh: float = Field(gt=0, le=10_000_000)  # battery capacity
+    loadW: float = Field(ge=0, le=100_000)         # power it uses all the time
+
+
 class AnalyzeRequest(BaseModel):
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-360, le=360)
     startDate: date
     days: float = Field(gt=0, le=400)
     stepHours: float = Field(gt=0, le=24)
+    rover: Rover | None = None
 
 
 class SiteInfo(BaseModel):
@@ -107,6 +116,7 @@ class AnalyzeResponse(BaseModel):
     site: SiteInfo
     times: list[str]
     stepHours: float
+    rover: Rover
     skyline: Skyline
     sun: SunTrack
     earth: EarthTrack
@@ -124,7 +134,13 @@ def sites() -> list[dict[str, float | str]]:
 @app.post("/analyze", response_model=AnalyzeResponse)
 def post_analyze(request: AnalyzeRequest) -> dict:
     try:
-        return analyze(request.lat, request.lon, request.startDate, request.days, request.stepHours)
+        rover = request.rover
+        return analyze(
+            request.lat, request.lon, request.startDate, request.days, request.stepHours,
+            solar_w=rover.solarW if rover else None,
+            battery_wh=rover.batteryWh if rover else None,
+            load_w=rover.loadW if rover else None,
+        )
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except FileNotFoundError as error:

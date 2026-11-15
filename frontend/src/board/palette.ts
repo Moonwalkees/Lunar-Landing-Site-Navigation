@@ -7,6 +7,7 @@ const TOKENS: Record<string, string> = {
   "--ash": "#8C867A",
   "--ash-dim": "#3A3832",
   "--sun": "#FFB43B",
+  "--power": "#F2D48A",
   "--earth": "#2FB5C4",
   "--ok": "#7BD66B",
   "--selected": "#FF5A36",

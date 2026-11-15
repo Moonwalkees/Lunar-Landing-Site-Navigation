@@ -32,6 +32,7 @@ export async function analyze(site: SiteInput): Promise<Analysis> {
         startDate: site.startDate,
         days: site.days,
         stepHours: site.stepHours,
+        ...(site.rover ? { rover: { solarW: site.rover.solarW, batteryWh: site.rover.batteryWh, loadW: site.rover.loadW } } : {}),
       }),
     });
   } catch {
