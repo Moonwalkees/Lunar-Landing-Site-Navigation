@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { TERRAIN_TILES, terrainTileFor } from "../terrain";
+import { guardTextInput } from "../keyGuard";
 
 // Where a body is in the sky as seen from the site, in degrees:
 // azimuth clockwise from local north, elevation above the local level plane.
@@ -41,6 +42,7 @@ const UNITY = import.meta.env.BASE_URL + "unity/";
 
 let loader: Promise<void> | null = null;
 function loadUnityLoader(): Promise<void> {
+  guardTextInput(); // already installed by main.tsx; kept so this view is safe on its own
   loader ??= new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = UNITY + "Build/WebGL.loader.js";

@@ -6,6 +6,18 @@ Pick a spot on the Moon and a date range. See when the Sun (power) and Earth (di
  
 See [doc/scope.md](doc/scope.md) for the full plan: scope, user interaction, data sources and model.
 
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev                      # dot-matrix board UI (default)
+VITE_UI=classic npm run dev      # the original panel UI
+```
+
+Both UIs ship in every build. The **CLASSIC VIEW** / **BOARD VIEW** button at the top-right switches between them and remembers the choice; `?ui=board` or `?ui=classic` forces one. `VITE_UI` only sets the default for first-time visitors (read at build time, so set it for `npm run build` too, or in `frontend/.env.local`).
+The board design is described in [doc/style.md](doc/style.md). `VITE_API_URL` points at the backend (default `http://localhost:8000`).
+
 ## Backend with Docker
 
 Prepare the offline datasets once before building (downloaded data is ignored by git):

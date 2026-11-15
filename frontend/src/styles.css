@@ -18,6 +18,9 @@ h2 { margin: 0 0 12px; font-size: 1rem; color: var(--accent); }
 
 .app { max-width: 1400px; margin: 0 auto; padding: 16px; }
 header { margin-bottom: 16px; }
+/* BOARD VIEW button, top-right (src/UiSwitch.tsx). */
+.ui-switch { float: right; margin-left: 12px; font: inherit; font-size: 12px; letter-spacing: .06em; padding: 6px 12px; border: 1px solid #555; background: transparent; color: inherit; cursor: pointer; }
+.ui-switch:hover { border-color: #999; }
 header p { margin: 4px 0 0; }
 .error { color: #f85149; }
 
