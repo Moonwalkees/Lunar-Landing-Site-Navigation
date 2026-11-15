@@ -8,10 +8,12 @@ import type { Analysis, TerrainGrid } from "./types";
 
 export type { ForecastBody };
 
-// Arrays hold one value per grid cell, row by row from the north edge.
+// Arrays hold one value per cell, row by row from the north edge.
 export interface Forecast {
   body: ForecastBody;
   early: boolean; // early-warning field (see marginField) in place of power / comms
+  rough: boolean; // half-resolution preview, shown while the timeline is moving
+  size: number; // cells per side of the arrays: the grid's, or about half of it when rough
   index: number;
   steps: number; // k, or fewer at the end of the window
   hours: number;
@@ -29,6 +31,9 @@ export interface ForecastState {
 }
 
 const IDLE: ForecastState = { forecast: null, pending: false, failed: false };
+
+// How long the timeline must be still before the sharp field is asked for.
+const SETTLE_MS = 200;
 
 // body null turns it off. grid and analysis must be for the same site.
 export function useForecast(
@@ -58,7 +63,8 @@ export function useForecast(
     w.onmessage = ({ data }: MessageEvent<ReplyMessage>) => {
       if (data.id !== latest.current) return; // stale reply
       const { id: _id, i, ...rest } = data;
-      setState({ forecast: { ...rest, index: i, hours: rest.steps * stepHours.current }, pending: false, failed: false });
+      // Still pending after a rough answer: the sharp one follows.
+      setState({ forecast: { ...rest, index: i, hours: rest.steps * stepHours.current }, pending: rest.rough, failed: false });
     };
     w.onerror = (e) => {
       console.error("The forecast worker failed:", e.message);
@@ -95,9 +101,15 @@ export function useForecast(
   // Must stay after the setup effect: on a new site the worker needs the setup first.
   useEffect(() => {
     if (!active || !worker.current) return;
-    const message: RequestMessage = { type: "request", id: ++latest.current, body, i: index, k, early };
-    worker.current.postMessage(message);
+    // Rough at once, so the map follows the scrubber; sharp once nothing has changed for a moment.
+    const ask = (rough: boolean) => {
+      const message: RequestMessage = { type: "request", id: ++latest.current, body, i: index, k, early, rough };
+      worker.current?.postMessage(message);
+    };
+    ask(true);
+    const settle = setTimeout(() => ask(false), SETTLE_MS);
     setState((s) => (s.pending ? s : { ...s, pending: true }));
+    return () => clearTimeout(settle);
   }, [active, grid, analysis, index, k, body, early]);
 
   return state;
