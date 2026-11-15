@@ -181,6 +181,8 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .add-chip[aria-expanded="true"] { color: var(--ash); border-color: var(--ash-dim); }
 .add-site { margin: 24px 0 16px; }
 .form-row .mono { margin-left: 6px; }
+.rover-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 14px 0 10px; }
+.rover-pick .rover-src { flex-basis: 100%; }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field input { font: 700 20px var(--font-dot); color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); border-radius: 0; min-height: 44px; padding: 0 10px; width: 100%; color-scheme: dark; }

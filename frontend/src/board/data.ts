@@ -1,3 +1,4 @@
+import type { RoverSpec } from "../rovers";
 // Pure helpers for the board UI (doc/style.md). Every value here is derived from POST /analyze.
 
 import type { Analysis } from "../types";
@@ -14,6 +15,7 @@ export interface MissionWindow {
   startDate: string; // YYYY-MM-DD
   days: number;
   stepHours: number;
+  rover: RoverSpec; // the rover every site is analysed for
 }
 
 export type SiteResult =
@@ -23,7 +25,7 @@ export type SiteResult =
 
 // One analysis covers one site over one window. A result is stale when this key changes.
 export const resultKey = (s: BoardSite, w: MissionWindow) =>
-  [s.lat, s.lon, w.startDate, w.days, w.stepHours].join("|");
+  [s.lat, s.lon, w.startDate, w.days, w.stepHours, w.rover.solarW, w.rover.batteryWh, w.rover.loadW].join("|");
 
 // ---------- state words (doc/style.md > Status words) ----------
 

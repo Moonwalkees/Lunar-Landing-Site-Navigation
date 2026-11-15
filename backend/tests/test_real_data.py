@@ -75,3 +75,25 @@ def test_analyze_endpoint_returns_the_frontend_metric_names() -> None:
         "pctPowerAndComms",
     }
     assert client.post("/analyze", json={**body, "stepHours": 0}).status_code == 422
+
+
+@kernels
+@maps
+def test_analyze_takes_the_rover_s_own_power_numbers() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    client = TestClient(app)
+    body = {"lat": -89.45, "lon": 222.7, "startDate": "2027-01-01", "days": 2, "stepHours": 1}
+
+    viper = client.post("/analyze", json=body).json()
+    assert viper["rover"] == {"solarW": 449.1, "batteryWh": 5420.0, "loadW": 108.0}
+
+    small = client.post("/analyze", json={**body, "rover": {"solarW": 50, "batteryWh": 200, "loadW": 20}}).json()
+    assert small["rover"] == {"solarW": 50.0, "batteryWh": 200.0, "loadW": 20.0}
+    assert max(small["powerW"]) <= 50.0 < max(viper["powerW"])   # the panel scales to the given power
+    assert max(small["batteryWh"]) <= 200.0                       # and the battery to the given size
+
+    bad = {**body, "rover": {"solarW": 0, "batteryWh": 200, "loadW": 20}}
+    assert client.post("/analyze", json=bad).status_code == 422

@@ -12,7 +12,13 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
-from app.constants import DEFAULT_PANEL_AREA_M2, DEFAULT_PANEL_EFFICIENCY
+from app.constants import (
+    DEFAULT_BATTERY_CAPACITY_WH,
+    DEFAULT_LOAD_W,
+    DEFAULT_PANEL_AREA_M2,
+    DEFAULT_PANEL_EFFICIENCY,
+    SOLAR_CONSTANT_W_PER_M2,
+)
 from app.eclipse import angular_separation, disc_radii, occulted_fraction
 from app.ephemeris import sun_earth_azel
 from app.horizon import MAST_M, height_at, skyline, skyline_at
@@ -36,7 +42,16 @@ def _next_drop(times: list[str], up: NDArray[np.bool_]) -> str | None:
     return times[int(drops[0]) + 1] + "Z" if drops.size else None
 
 
-def analyze(lat: float, lon: float, start: date, days: float, step_hours: float) -> dict[str, Any]:
+def analyze(
+    lat: float,
+    lon: float,
+    start: date,
+    days: float,
+    step_hours: float,
+    solar_w: float | None = None,
+    battery_wh: float | None = None,
+    load_w: float | None = None,
+) -> dict[str, Any]:
     """Skyline, Sun and Earth tracks, power, battery, comms and the headline metrics."""
     steps = int(np.floor(days * 24 / step_hours))
     if steps + 1 > MAX_STEPS:
@@ -60,7 +75,15 @@ def analyze(lat: float, lon: float, start: date, days: float, step_hours: float)
     fraction = above_terrain * (1.0 - behind_earth)
     lit = fraction > 0
 
-    power_w = np.atleast_1d(power(np.radians(sky["sun_el"]), fraction, DEFAULT_PANEL_AREA_M2, DEFAULT_PANEL_EFFICIENCY))
+    # The rover: its solar power with the whole Sun in view, its battery and the power it uses.
+    # Any left out are the VIPER defaults in constants.py. A given solar power scales the panel.
+    default_solar_w = SOLAR_CONSTANT_W_PER_M2 * DEFAULT_PANEL_AREA_M2 * DEFAULT_PANEL_EFFICIENCY
+    solar_w = default_solar_w if solar_w is None else float(solar_w)
+    battery_wh = DEFAULT_BATTERY_CAPACITY_WH if battery_wh is None else float(battery_wh)
+    load_w = DEFAULT_LOAD_W if load_w is None else float(load_w)
+    area_m2 = DEFAULT_PANEL_AREA_M2 * solar_w / default_solar_w
+
+    power_w = np.atleast_1d(power(np.radians(sky["sun_el"]), fraction, area_m2, DEFAULT_PANEL_EFFICIENCY))
     summary = summarize_power(power_w, step_hours)
 
     # Earth: clearance above the skyline in its direction.
@@ -70,12 +93,13 @@ def analyze(lat: float, lon: float, start: date, days: float, step_hours: float)
     margin = np.degrees(margin_rad)
     linked = margin >= 0
 
-    battery = simulate_battery(power_w, dt_h=step_hours)
+    battery = simulate_battery(power_w, load_w=load_w, capacity_wh=battery_wh, dt_h=step_hours)
 
     return {
         "site": {"lat": lat, "lon": lon, "heightM": round(ground, 1), "mastM": MAST_M},
         "times": [t + "Z" for t in times],
         "stepHours": step_hours,
+        "rover": {"solarW": round(solar_w, 1), "batteryWh": round(battery_wh, 1), "loadW": round(load_w, 1)},
         "skyline": {"az": sky_az.tolist(), "el": np.round(sky_el, 3).tolist()},
         "sun": {
             "az": np.round(sky["sun_az"], 3).tolist(),

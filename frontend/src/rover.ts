@@ -20,7 +20,7 @@ export interface RoverNow {
 
 const span = (hours: number) => (hours < 48 ? Math.round(hours) + " h" : (hours / 24).toFixed(1) + " days");
 
-export const roverCapacity = (analysis: Analysis) => Math.max(1, ...analysis.batteryWh);
+export const roverCapacity = (analysis: Analysis) => analysis.rover?.batteryWh ?? Math.max(1, ...analysis.batteryWh);
 
 export function roverAt(analysis: Analysis, index: number, capacity: number): RoverNow {
   const sun = analysis.sun.fraction[index];

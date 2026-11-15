@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Metrics } from "../types";
 import { stamp, type MissionWindow, type State } from "./data";
+import { CUSTOM_ROVER, ROVER_PRESETS, ROVER_RULES } from "../rovers";
 
 // ---------- annunciator lamps (doc/style.md > Annunciator lamps) ----------
 
@@ -76,8 +77,24 @@ export function Mission({ win, onWindow }: MissionProps) {
   const [start, setStart] = useState(win.startDate);
   const [days, setDays] = useState(String(win.days));
   const [step, setStep] = useState(String(win.stepHours));
+  const [roverName, setRoverName] = useState(win.rover.name);
+  const [solar, setSolar] = useState(String(win.rover.solarW));
+  const [battery, setBattery] = useState(String(win.rover.batteryWh));
+  const [use, setUse] = useState(String(win.rover.loadW));
   const [winErr, setWinErr] = useState<string | null>(null);
-  useEffect(() => { setStart(win.startDate); setDays(String(win.days)); setStep(String(win.stepHours)); }, [win]);
+  useEffect(() => {
+    setStart(win.startDate); setDays(String(win.days)); setStep(String(win.stepHours));
+    setRoverName(win.rover.name); setSolar(String(win.rover.solarW)); setBattery(String(win.rover.batteryWh)); setUse(String(win.rover.loadW));
+  }, [win]);
+
+  // A preset fills the three numbers; typing in any of them makes the rover Custom.
+  const pickRover = (name: string) => {
+    setRoverName(name);
+    const p = ROVER_PRESETS.find((x) => x.name === name);
+    if (p) { setSolar(String(p.solarW)); setBattery(String(p.batteryWh)); setUse(String(p.loadW)); }
+  };
+  const roverField = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => { set(e.target.value); setRoverName(CUSTOM_ROVER); };
+  const preset = ROVER_PRESETS.find((p) => p.name === roverName);
 
   const run = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,8 +102,12 @@ export function Mission({ win, onWindow }: MissionProps) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) return setWinErr("START MUST BE A DATE");
     if (!(d > 0 && d <= 400)) return setWinErr("WINDOW MUST BE 0-400 DAYS");
     if (!(s > 0 && s <= 24)) return setWinErr("STEP MUST BE 0-24 H");
+    const sw = num(solar), bw = num(battery), lw = num(use);
+    if (!ROVER_RULES.solarW.ok(sw)) return setWinErr("SOLAR MUST BE MORE THAN 0 W");
+    if (!ROVER_RULES.batteryWh.ok(bw)) return setWinErr("BATTERY MUST BE MORE THAN 0 WH");
+    if (!ROVER_RULES.loadW.ok(lw)) return setWinErr("POWER USE MUST BE 0 W OR MORE");
     setWinErr(null);
-    onWindow({ startDate: start, days: d, stepHours: s });
+    onWindow({ startDate: start, days: d, stepHours: s, rover: { name: roverName, solarW: sw, batteryWh: bw, loadW: lw } });
   };
 
   return (
@@ -100,6 +121,21 @@ export function Mission({ win, onWindow }: MissionProps) {
             <input inputMode="decimal" value={days} onChange={(e) => setDays(e.target.value)} /></label>
           <label className="field"><span className="mono">Step · hours</span>
             <input inputMode="decimal" value={step} onChange={(e) => setStep(e.target.value)} /></label>
+        </div>
+        <div className="rover-pick" role="group" aria-label="Rover">
+          <span className="mono">Rover</span>
+          {[...ROVER_PRESETS.map((p) => p.name), CUSTOM_ROVER].map((n) => (
+            <button key={n} type="button" className="chip" aria-pressed={roverName === n} onClick={() => pickRover(n)}>{n.toUpperCase()}</button>
+          ))}
+          {preset && <span className="mono rover-src">{preset.source}</span>}
+        </div>
+        <div className="fields">
+          <label className="field"><span className="mono">Solar · W</span>
+            <input inputMode="decimal" value={solar} onChange={roverField(setSolar)} /></label>
+          <label className="field"><span className="mono">Battery · Wh</span>
+            <input inputMode="decimal" value={battery} onChange={roverField(setBattery)} /></label>
+          <label className="field"><span className="mono">Power use · W</span>
+            <input inputMode="decimal" value={use} onChange={roverField(setUse)} /></label>
         </div>
         <div className="form-row"><button className="chip" type="submit">RUN</button></div>
         {winErr && <div className="form-err mono">{winErr}</div>}

@@ -8,6 +8,7 @@ import TimeSeries from "./components/TimeSeries";
 import Compare, { MAX_COMPARE } from "./components/Compare";
 import { analyze as requestAnalysis, getSites } from "./api/client";
 import { FALLBACK_SITE, defaultSite } from "./sites";
+import { DEFAULT_ROVER } from "./rovers";
 import { EMPTY_METRICS, type Analysis, type Metrics, type PinnedSite, type Preset, type SiteInput } from "./types";
 
 // Plotly is most of the bundle, so the panorama loads separately and the rest of the page doesn't wait for it.
@@ -21,6 +22,7 @@ export default function App() {
     startDate: today,
     days: 29.5, // one lunar month
     stepHours: 1,
+    rover: DEFAULT_ROVER,
   });
   // Until GET /sites answers (or if it never does), offer the fallback site only.
   const [presets, setPresets] = useState<Preset[]>([FALLBACK_SITE]);

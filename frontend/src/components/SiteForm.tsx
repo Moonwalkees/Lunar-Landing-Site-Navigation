@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Preset, SiteInput } from "../types";
 import { CUSTOM } from "../sites";
+import { CUSTOM_ROVER, DEFAULT_ROVER, ROVER_PRESETS, ROVER_RULES, type RoverSpec } from "../rovers";
 
 interface Props {
   site: SiteInput;
@@ -13,10 +14,10 @@ interface Props {
   canAdd: boolean;
 }
 
-type NumberKey = "lat" | "lon" | "days" | "stepHours";
+type NumberKey = "lat" | "lon" | "days" | "stepHours" | "solarW" | "batteryWh" | "loadW";
 
 // The allowed range of each number, as the backend checks it, and what to say when it's outside.
-const RULES: Record<NumberKey, { ok: (n: number) => boolean; message: string }> = {
+const RULES: Record<"lat" | "lon" | "days" | "stepHours", { ok: (n: number) => boolean; message: string }> = {
   lat: { ok: (n) => n >= -90 && n <= 90, message: "Latitude must be between -90 and 90." },
   lon: { ok: (n) => n >= -360 && n <= 360, message: "Longitude must be between -360 and 360." },
   days: { ok: (n) => n > 0 && n <= 400, message: "Window must be more than 0 and at most 400 days." },
@@ -87,6 +88,16 @@ export default function SiteForm({
     if (p) onChange({ ...site, name: p.name, lat: p.lat, lon: p.lon });
   };
 
+  // The rover: a preset fills all three numbers; changing any number makes it Custom.
+  const rover: RoverSpec = site.rover ?? DEFAULT_ROVER;
+  const pickRover = (name: string) => {
+    const p = ROVER_PRESETS.find((x) => x.name === name);
+    onChange({ ...site, rover: p ? { name: p.name, solarW: p.solarW, batteryWh: p.batteryWh, loadW: p.loadW } : { ...rover, name: CUSTOM_ROVER } });
+  };
+  const setRover = (key: "solarW" | "batteryWh" | "loadW", value: number) =>
+    onChange({ ...site, rover: { ...rover, name: CUSTOM_ROVER, [key]: value } });
+  const roverPreset = ROVER_PRESETS.find((p) => p.name === rover.name);
+
   // A site name not in the list (e.g. a pinned preset after a reload) shows as Custom.
   const selected = presets.some((p) => p.name === site.name) ? site.name : CUSTOM;
   const blocked = invalid.size > 0;
@@ -117,6 +128,22 @@ export default function SiteForm({
           onValue={(days) => set("days", days)} />
         <NumberField label="Step (hours)" value={site.stepHours} rule={RULES.stepHours} onValid={markValid("stepHours")}
           onValue={(stepHours) => set("stepHours", stepHours)} />
+        <label>
+          Rover
+          <select value={roverPreset ? rover.name : CUSTOM_ROVER} onChange={(e) => pickRover(e.target.value)}>
+            {ROVER_PRESETS.map((p) => (
+              <option key={p.name}>{p.name}</option>
+            ))}
+            <option>{CUSTOM_ROVER}</option>
+          </select>
+        </label>
+        {roverPreset && <p className="muted rover-source">{roverPreset.source}</p>}
+        <NumberField label="Solar power (W)" value={rover.solarW} rule={ROVER_RULES.solarW} onValid={markValid("solarW")}
+          onValue={(v) => setRover("solarW", v)} />
+        <NumberField label="Battery (Wh)" value={rover.batteryWh} rule={ROVER_RULES.batteryWh} onValid={markValid("batteryWh")}
+          onValue={(v) => setRover("batteryWh", v)} />
+        <NumberField label="Power use (W)" value={rover.loadW} rule={ROVER_RULES.loadW} onValid={markValid("loadW")}
+          onValue={(v) => setRover("loadW", v)} />
       </div>
       <div className="actions">
         <button onClick={onAnalyze} disabled={analyzing || blocked} title={blocked ? "Fix the highlighted field first." : undefined}>

@@ -24,6 +24,7 @@ header { margin-bottom: 16px; }
 header p { margin: 4px 0 0; }
 .error { color: #f85149; }
 .field-error { font-size: 0.8rem; }
+.rover-source { margin: -4px 0 0; font-size: 0.75rem; }
 
 .layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
 main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
