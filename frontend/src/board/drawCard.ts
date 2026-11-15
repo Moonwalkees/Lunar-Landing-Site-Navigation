@@ -91,6 +91,12 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
   try { host = new URL(d.url).host; } catch { /* keep the whole link */ }
   const hostSize = fitSize(g, host, 700, 30, 18, box.x - M - 32);
   text(g, host, M, box.y + 32, `700 ${hostSize}px ${DOT}`, "--regolith");
+  // The whole link in small mono under it, for typing in or checking, in its own case (links are
+  // case-sensitive, so not upper-cased like the captions).
+  g.font = `400 16px ${MONO}`;
+  g.letterSpacing = "0px";
+  wrapLink(g, d.url, box.x - M - 32).forEach((line, k) =>
+    text(g, line, M, box.y + 32 + hostSize + 18 + k * 22, `400 16px ${MONO}`, "--ash"));
   caption(g, "Data: NASA LOLA · NAIF SPICE", M, box.y + box.size - 16, "--ash", "left", 16);
 
   canvas.width = CARD_W;
@@ -332,6 +338,27 @@ function fitSize(g: G, s: string, weight: number, max: number, min: number, widt
     if (g.measureText(s).width <= width) return size;
   }
   return min;
+}
+
+// A link split into lines no wider than `width` in the current font, breaking before ? and &
+// where it can and anywhere inside a part that is too long on its own.
+function wrapLink(g: G, url: string, width: number): string[] {
+  const parts = url.split(/(?=[?&])/);
+  const lines: string[] = [];
+  let line = "";
+  for (let part of parts) {
+    if (line && g.measureText(line + part).width > width) { lines.push(line); line = ""; }
+    while (g.measureText(line + part).width > width) {
+      let k = 1;
+      while (k < part.length && g.measureText(line + part.slice(0, k + 1)).width <= width) k++;
+      lines.push(line + part.slice(0, k));
+      line = "";
+      part = part.slice(k);
+    }
+    line += part;
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 // `s` cut with an ellipsis to fit `width` in the current font.
