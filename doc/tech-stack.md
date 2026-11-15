@@ -15,7 +15,7 @@ Agreed stack for the Lunar Landing Site Navigator. Scope and requirements live i
 | Horizon algo | Ray-march 720 azimuths (0.5°) and take the max elevation angle, with lunar curvature | Simple, ~1 s per site |
 | Model | numpy functions straight from the scope.md Model section | One place for all the metric math |
 | API | FastAPI + pydantic. `GET /sites` (hardcoded presets), `POST /analyze` | Typed, minimal |
-| Frontend | React + Vite + TS, `react-plotly.js` for the panorama and time series, plain `useState`. Site picker: dropdown + lat/lon inputs | Team knows React; Plotly gives hover and zoom for free |
+| Frontend | React + Vite + TS, plain `useState`. Two UIs chosen at build time by `VITE_UI`: `board` (default, `src/board/`, the dot-matrix design in [style.md](style.md), with `three` for the 3D map and canvas dot charts) and `classic` (`App.tsx`, `react-plotly.js` for the panorama). Site picker: dropdown + lat/lon inputs | Team knows React; three.js added 2026-11-15 for the approved 3D map |
 | Hosting | Backend: Docker image on Render or Fly (kernels + cropped DEMs inside). Frontend: Vercel | Public URL for the judges |
 | Caching | None for now | Keep it thin |
 
@@ -38,7 +38,9 @@ backend/
   requirements.txt
   Dockerfile
 frontend/
-  src/App.tsx
+  src/main.tsx            picks the UI from VITE_UI
+  src/board/              dot-matrix board UI (default)
+  src/App.tsx             classic UI (VITE_UI=classic)
   src/components/{SiteForm,MetricCards,Panorama,TimeSeries,Compare}.tsx
 doc/
   scope.md
