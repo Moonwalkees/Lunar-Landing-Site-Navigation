@@ -13,15 +13,15 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
+# data/ is gitignored, so the build downloads it. Only the fetch script and the preset list
+# (used to crop the polar map) are copied first, so app code changes reuse this cached layer.
+# The raw LOLA downloads (~2.4 GB) are deleted in the same step, so they never reach the image.
 COPY scripts/ ./scripts/
+COPY app/sites.py ./app/sites.py
+RUN python scripts/fetch_data.py kernels \
+    && python scripts/fetch_data.py dems
 
-# Prepare these files locally with scripts/fetch_data.py before building.
-COPY data/kernels/ ./data/kernels/
-COPY data/dem/ldem_85s_20m_crop.tif data/dem/ldem_64.tif ./data/dem/
-
-# Existing kernels are skipped; rewrite meta.tm with the container's /app path.
-RUN python scripts/fetch_data.py kernels
+COPY app/ ./app/
 
 EXPOSE 8000
 

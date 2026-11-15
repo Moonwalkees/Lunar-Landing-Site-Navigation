@@ -21,3 +21,6 @@ data/dem/raw/
 tests/
 .coverage
 htmlcov/
+
+# Downloaded during the image build instead
+data/
