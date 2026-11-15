@@ -47,7 +47,7 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
   g.textBaseline = "top";
 
   // ---- header ----
-  caption(g, "Lunar Landing Site Navigator · Mission card", M, M);
+  caption(g, "Moonwalker's Wiki · Mission card", M, M);
   caption(g, `${d.window.days}-day window from ${d.window.startDate}`, CARD_W - M, M, "--ash", "right");
   hairline(g, M + 36);
 

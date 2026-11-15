@@ -240,7 +240,7 @@ export default function BoardApp() {
           <div className="hud hud-top">
             <div>
               <div className="mono">{region} · {win.days}-day window from {win.startDate}</div>
-              <h1>Lunar Site Board</h1>
+              <h1>Moonwalker's Wiki</h1>
               {backendDown ? (
                 <span className="mono flag alert">Backend LOS · {sitesError}</span>
               ) : (
