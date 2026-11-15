@@ -40,7 +40,7 @@ backend/
 frontend/
   src/main.tsx            picks the UI (src/uiChoice.ts: ?ui=, saved choice, VITE_UI)
   src/board/              dot-matrix board UI (default)
-  src/App.tsx             classic UI (BOARD VIEW / CLASSIC VIEW button, src/UiSwitch.tsx)
+  src/App.tsx             classic UI (BOARD VIEW button, src/UiSwitch.tsx; reached with ?ui=classic)
   src/components/{SiteForm,MetricCards,Panorama,TimeSeries,Compare}.tsx
 doc/
   scope.md

@@ -12,7 +12,6 @@ import { DEFAULT_ROVER } from "../rovers";
 import { terrainTileFor } from "../terrain";
 import DotChart from "./DotChart";
 import HeroMap, { type MapPin } from "./HeroMap";
-import UiSwitch from "../UiSwitch";
 import { AddSite, Lamps, MetricsPanel, Mission, TimeDock } from "./Panels";
 import Skyline from "./Skyline";
 
@@ -192,7 +191,6 @@ export default function BoardApp() {
                 <div><span className="mono">Sun el</span><b className="s">{signedDeg(sun?.el)}</b></div>
                 <div><span className="mono">Earth el</span><b className="e">{signedDeg(earth?.el)}</b></div>
               </div>
-              <UiSwitch />
             </div>
           </div>
           <div className="hud hint mono">Drag orbit · pinch zoom · tap a pin</div>

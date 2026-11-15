@@ -15,7 +15,7 @@ npm run dev                      # dot-matrix board UI (default)
 VITE_UI=classic npm run dev      # the original panel UI
 ```
 
-Both UIs ship in every build. The **CLASSIC VIEW** / **BOARD VIEW** button at the top-right switches between them and remembers the choice; `?ui=board` or `?ui=classic` forces one. `VITE_UI` only sets the default for first-time visitors (read at build time, so set it for `npm run build` too, or in `frontend/.env.local`).
+Both UIs ship in every build. The board is the default and has no switch button; open `?ui=classic` to reach the classic UI, whose **BOARD VIEW** button (top-right) switches back. The choice is remembered, and `?ui=board` or `?ui=classic` forces one. `VITE_UI` only sets the default for first-time visitors (read at build time, so set it for `npm run build` too, or in `frontend/.env.local`).
 The board design is described in [doc/style.md](doc/style.md). `VITE_API_URL` points at the backend (default `http://localhost:8000`).
 
 ## Backend with Docker

@@ -2,7 +2,7 @@
 
 Visual design for the Lunar Landing Site Navigator frontend. Scope lives in [scope.md](scope.md) and the stack in [tech-stack.md](tech-stack.md). This document only says how the frontend should look and feel.
 
-**Status:** implemented in `frontend/src/board/` (ticket 4.12), the default UI. The original UI stays available through the **CLASSIC VIEW** button to the right of the clock stats, top-right of the map (a console-style `.cbtn`-look button; ticket 4.22), or `?ui=classic`.
+**Status:** implemented in `frontend/src/board/` (ticket 4.12), the default UI. The original UI stays available through `?ui=classic` (ticket 4.22); the board itself has no button for it (ticket 4.31), while the classic UI keeps a BOARD VIEW button.
 
 ## Reference mocks
 
