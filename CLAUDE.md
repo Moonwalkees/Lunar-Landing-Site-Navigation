@@ -18,11 +18,16 @@ Act as project manager for a local folder called `LarpBucket/` at the repo root.
 LarpBucket/
   feature/
     done/
+    proposed/
   bug/
     done/
 ```
 
 Open and in-progress tickets live directly in `feature/` or `bug/`. Tickets with `Status: done` live in that folder's `done/` subfolder.
+
+`feature/proposed/` holds ideas that are **not yet in scope** (`Status: proposed`). Don't build them unless the user asks. Once the user accepts one, set `Status: open` and `git mv` it up into `feature/`, keeping its number. Proposed numbering:
+- `7.<n>`: extension features (new functionality, e.g. rover route tracer, heatmaps)
+- `8.<n>`: X-factors (polish and flair, e.g. sounds, shareable cards, opening sequence)
 
 ### Workflow
 1. **Before starting work**, read the tickets in `LarpBucket/`. Pick a ticket whose status is `open`, or ask the user which one to take.
@@ -35,7 +40,7 @@ Open and in-progress tickets live directly in `feature/` or `bug/`. Tickets with
 ### Feature tickets
 Path: `LarpBucket/feature/<step>.<n>-<short-slug>.md`, e.g. `LarpBucket/feature/2.1-skyline-single-site.md`.
 
-- `<step>` is the build-order step number in [doc/tech-stack.md](doc/tech-stack.md) (1 = data + ephemeris, 2 = horizon, 3 = model + API, 4 = frontend, 5 = deploy).
+- `<step>` is the build-order step number in [doc/tech-stack.md](doc/tech-stack.md) (1 = data + ephemeris, 2 = horizon, 3 = model + API, 4 = frontend, 5 = deploy). `7` and `8` are reserved for proposed extension features and X-factors (see `feature/proposed/` above).
 - `<n>` counts up within that step. Check the existing tickets, including those in `done/`, for the next free number.
 - Each ticket should be a manageable, practical bite: one focused piece of work a person can finish in one sitting.
 
