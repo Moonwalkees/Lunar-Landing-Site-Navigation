@@ -16,6 +16,7 @@ export interface RoverNow {
   battery: number;          // Wh
   capacity: number;         // Wh: the highest level in the window (the response has no capacity field)
   link: Analysis["comms"][number];
+  eclipse: number; // share of the Sun's disc the Earth covers now, 0 to 1
 }
 
 const span = (hours: number) => (hours < 48 ? Math.round(hours) + " h" : (hours / 24).toFixed(1) + " days");
@@ -55,7 +56,7 @@ export function roverAt(analysis: Analysis, index: number, capacity: number): Ro
     hint = next >= analysis.times.length ? "lasts to the end of the window"
       : analysis.batteryWh[next] <= 0.5 ? "empty in " + wait : "Sun returns in " + wait;
   }
-  return { kind, state, hint, sun, power, battery, capacity, link: analysis.comms[index] };
+  return { kind, state, hint, sun, power, battery, capacity, link: analysis.comms[index], eclipse: analysis.sun.behindEarth[index] ?? 0 };
 }
 
 // The Sun's disc as words: hidden, a sliver, or a percentage.

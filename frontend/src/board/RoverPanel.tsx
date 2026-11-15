@@ -35,6 +35,7 @@ export default function RoverPanel({ analysis, index, low }: Props) {
         {Array.from({ length: CELLS }, (_, i) => <i key={i} className={i < lit ? "on" : ""} />)}
       </div>
       <div className="mono">{now.hint}</div>
+      {now.eclipse > 0 && <div className="mono eclipse">Eclipse · {Math.max(1, Math.round(now.eclipse * 100))}% of the Sun behind the Earth</div>}
     </div>
   );
 }

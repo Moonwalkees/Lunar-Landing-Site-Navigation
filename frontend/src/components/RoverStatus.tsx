@@ -39,6 +39,7 @@ export default function RoverStatus({ analysis, index }: Props) {
         <span>{now.link === "clear" ? "link clear" : now.link === "marginal" ? "link marginal" : "blocked"}</span>
       </div>
       <div className="rover-hint">{now.hint}</div>
+      {now.eclipse > 0 && <div className="rover-eclipse">Eclipse: {Math.max(1, Math.round(now.eclipse * 100))}% of the Sun behind the Earth</div>}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Analysis } from "../types";
+import { eclipses, nextEclipse } from "../eclipses";
 
 interface Props {
   analysis: Analysis | null;
@@ -13,6 +14,7 @@ const SUN = "#c08a1c";
 const EARTH = "#4a8fe6";
 const BATTERY = "#3fa66a";
 
+const ECLIPSE = "#f85149"; // lunar eclipse marks on the Sun row
 const LABEL_W = 72; // room for the row names and scales on the left
 const ROWS = [
   { key: "sun", label: "Sun", height: 18 },
@@ -147,6 +149,16 @@ export default function TimeSeries({ analysis, timeIndex, maxIndex, onScrub }: P
         }
       }
       g.globalAlpha = 1;
+      // Eclipses: a red mark across the Sun row wherever the Earth covers part of the Sun.
+      if (row.key === "sun") {
+        g.fillStyle = ECLIPSE;
+        for (let c = 0; c < columns; c++) {
+          const a = Math.floor((c / columns) * n), b = Math.max(a + 1, Math.floor(((c + 1) / columns) * n));
+          let hit = false;
+          for (let k = a; k < b && !hit; k++) hit = analysis.sun.behindEarth[k] > 0;
+          if (hit) g.fillRect(LABEL_W + c / ratio - 1, y, 1 / ratio + 2, row.height);
+        }
+      }
       y += row.height + GAP;
     }
 
@@ -201,6 +213,7 @@ export default function TimeSeries({ analysis, timeIndex, maxIndex, onScrub }: P
             <label className="inline">
               <input type="checkbox" checked={loop} onChange={(e) => setLoop(e.target.checked)} /> Loop
             </label>
+            <NextEclipseButton analysis={analysis} index={i} onScrub={(k) => { setPlaying(false); onScrub(k); }} />
             <span className="timeline-now">{stamp(analysis.times[i])}</span>
           </div>
 
@@ -264,5 +277,17 @@ export default function TimeSeries({ analysis, timeIndex, maxIndex, onScrub }: P
           onChange={(e) => { setPlaying(false); onScrub(Number(e.target.value)); }} />
       </label>
     </section>
+  );
+}
+
+// Jumps to the peak of the next eclipse in the window (ticket 7.4); off when there is none.
+function NextEclipseButton({ analysis, index, onScrub }: { analysis: Analysis; index: number; onScrub: (i: number) => void }) {
+  const next = useMemo(() => eclipses(analysis), [analysis]);
+  const target = nextEclipse(next, index);
+  return (
+    <button className="secondary" disabled={!target} onClick={() => target && onScrub(target.peak)}
+      title={target ? "Peak at " + stamp(analysis.times[target.peak]) + ", " + Math.round(target.covered * 100) + "% of the Sun covered" : "No eclipse in this window"}>
+      Next eclipse
+    </button>
   );
 }
