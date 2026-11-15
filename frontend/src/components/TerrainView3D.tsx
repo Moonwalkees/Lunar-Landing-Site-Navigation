@@ -18,8 +18,6 @@ interface Props {
   view: View3D;
   // The panel's view buttons (bird's-eye, orbit, surface).
   viewButtons: ReactNode;
-  // Each change turns the surface camera onto the Sun, zoomed in (to show an eclipse).
-  focusSun?: number;
 }
 
 export type View3D = "orbit" | "surface";
@@ -57,7 +55,7 @@ function loadUnityLoader(): Promise<void> {
 
 // The 3D half of the terrain panel (TerrainView): the real terrain around the site, with the Sun casting shadows and the Earth
 // in the sky. It only displays the angles it is given; it never computes them.
-export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons, focusSun }: Props) {
+export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons }: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const unity = useRef<UnityInstance | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
@@ -120,14 +118,6 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons,
       else if (canvas) canvas.style.display = "none";
     };
   }, []);
-
-  // Point the surface camera at the Sun when asked. After the state effect below has sent
-  // view "surface", so Unity is already in surface view.
-  useEffect(() => {
-    if (!focusSun || status !== "ready" || !unity.current) return;
-    const t = setTimeout(() => unity.current?.SendMessage("Bridge", "FocusSun", 6), 50);
-    return () => clearTimeout(t);
-  }, [focusSun, status]);
 
   // Tell the view what to show. Fields left out keep their previous value, so a site
   // with no terrain, or angles that aren't known yet, simply aren't sent.
