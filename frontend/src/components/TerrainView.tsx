@@ -1,9 +1,9 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useState, type ReactNode } from "react";
 import TerrainMap from "./TerrainMap";
 import type { SkyPosition, View3D } from "./TerrainView3D";
 
 // The orbit and surface views are Unity WebGL (doc/3d-view.md). They are only loaded, and the
-// 53 MB build only downloaded, once the user picks one of them.
+// 55 MB build only downloaded, once the user picks one of them.
 const TerrainView3D = lazy(() => import("./TerrainView3D"));
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
   // Null until an analysis supplies them.
   sun: SkyPosition | null;
   earth: SkyPosition | null;
+  // Drawn over the top-right corner of whichever view is showing.
+  overlay?: ReactNode;
 }
 
 type View = "birdseye" | View3D;
@@ -23,7 +25,7 @@ const VIEWS: { id: View; label: string; title?: string }[] = [
 ];
 
 // Terrain around the site. Opens on the light bird's-eye map; orbit and surface are the 3D views.
-export default function TerrainView(props: Props) {
+export default function TerrainView({ overlay, ...props }: Props) {
   const [view, setView] = useState<View>("birdseye");
 
   const viewButtons = VIEWS.map((v) => (
@@ -41,6 +43,8 @@ export default function TerrainView(props: Props) {
   return (
     <section className="panel">
       <h2>Terrain view</h2>
+      <div className="terrain-wrap">
+      {overlay}
       {view === "birdseye" ? (
         <TerrainMap {...props} viewButtons={viewButtons} />
       ) : (
@@ -55,6 +59,7 @@ export default function TerrainView(props: Props) {
           <TerrainView3D {...props} view={view} viewButtons={viewButtons} />
         </Suspense>
       )}
+      </div>
     </section>
   );
 }

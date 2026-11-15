@@ -11,7 +11,7 @@ This view is not in [scope.md](scope.md) yet (see ticket 4.9). The terrain panel
 | React panel (view buttons) | `frontend/src/components/TerrainView.tsx` |
 | 3D view inside the panel | `frontend/src/components/TerrainView3D.tsx` |
 | Which areas have terrain | `frontend/src/terrain.ts` |
-| The built view (53 MB) | `frontend/public/unity/` |
+| The built view (55 MB) | `frontend/public/unity/` |
 
 `frontend/public/unity/` holds two folders that must stay together:
 
@@ -56,6 +56,7 @@ The three south pole presets in `backend/app/sites.py` (served by `GET /sites`) 
 - The terrain is true scale with no vertical exaggeration, and the Moon's curvature is applied, so distant ground sits where it would really appear.
 - Its shadows were checked against a direct calculation from the height data: they agree over about 96% of the detailed area, and the differences are soft bands along shadow edges. Mountains in the surrounding terrain shade the detailed area too.
 - When the Earth is in front of the Sun (a lunar eclipse), the sunlight dims by the share of the Sun that is covered.
+- A rover stands at the site at its real size, under the red pin. It is NASA's Perseverance model standing in for a lunar rover, it does not move, and it is only drawn within 3 km of the camera. **Zoom to rover** in orbit view takes the camera to it; from the page that is `unity.SendMessage("Bridge", "SetOrbitDistance", 14)` (metres from the site; 9000 is the usual overview).
 - The Earth is NASA's Blue Marble map on a sphere, 1.9° across, lit from the Sun's side, so its phase is right for the two directions it is given. One fixed side of it faces the Moon (the real Earth turns once a day), its night side is drawn faintly so it can still be found, and it has no clouds.
 - Beyond 16 km from the centre of the detailed square the terrain is coarse (125 m to 500 m between samples), and the outer 90 m of the square is blended into the 31 m level around it. Use the backend's skyline for visibility numbers, and this view to show them.
 - The dim bluish light on shadowed ground is a fill light so the terrain stays readable. It is not a calculation of earthshine.

@@ -1,6 +1,6 @@
 # Bird's-eye view (2D terrain map)
 
-The terrain panel's default view, next to **Orbit view** and **Surface view**: a top-down, north-up map of the 24 km square around the site, with the ground out of the Sun shaded blue-dark and arrows toward the Sun and the Earth. It is the light alternative to the [3D view](3d-view.md): about 100 kB per site, no GPU needed, and the 53 MB Unity build is never downloaded unless the user picks orbit or surface.
+The terrain panel's default view, next to **Orbit view** and **Surface view**: a top-down, north-up map of the 24 km square around the site, with the ground out of the Sun shaded blue-dark and arrows toward the Sun and the Earth. It is the light alternative to the [3D view](3d-view.md): about 100 kB per site, no GPU needed, and the 55 MB Unity build is never downloaded unless the user picks orbit or surface.
 
 This view is not in [scope.md](scope.md) yet (ticket 4.11).
 

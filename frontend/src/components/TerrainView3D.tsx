@@ -23,7 +23,7 @@ interface Props {
 export type View3D = "orbit" | "surface";
 
 interface UnityInstance {
-  SendMessage(object: string, method: string, value: string): void;
+  SendMessage(object: string, method: string, value: string | number): void;
   Quit(): Promise<void>;
 }
 
@@ -60,6 +60,7 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons 
   const unity = useRef<UnityInstance | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
   const [progress, setProgress] = useState(0);
+  const [closeUp, setCloseUp] = useState(false);
 
   const tile = terrainTileFor(lat, lon);
 
@@ -153,7 +154,23 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons 
           </div>
         )}
       </div>
-      <div className="actions">{viewButtons}</div>
+      <div className="actions">
+        {viewButtons}
+        {view === "orbit" && (
+          <button
+            className="secondary"
+            disabled={status !== "ready" || !tile}
+            title="The rover at the site is 3 m long, so it only shows from close by."
+            onClick={() => {
+              // Metres from the site: 14 for a close-up of the rover, 9000 for the usual overview.
+              unity.current?.SendMessage("Bridge", "SetOrbitDistance", closeUp ? 9000 : 14);
+              setCloseUp(!closeUp);
+            }}
+          >
+            {closeUp ? "Zoom out" : "Zoom to rover"}
+          </button>
+        )}
+      </div>
       <p className="muted terrain-hint">
         Drag to look around, scroll to zoom.
         {(!sun || !earth) && " The Sun and Earth are at example angles until Analyze supplies real ones."}

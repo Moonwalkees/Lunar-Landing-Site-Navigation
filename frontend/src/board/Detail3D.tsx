@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import TerrainMap from "../components/TerrainMap";
 import type { SkyPosition, View3D } from "../components/TerrainView3D";
 
-// The Unity build (68 MB, doc/3d-view.md) only loads once the user picks surface or orbit.
+// The Unity build (55 MB, doc/3d-view.md) only loads once the user picks surface or orbit.
 const TerrainView3D = lazy(() => import("../components/TerrainView3D"));
 
 interface Props {

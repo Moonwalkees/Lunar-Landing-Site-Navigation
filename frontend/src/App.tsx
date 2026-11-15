@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import SiteForm from "./components/SiteForm";
 import MetricCards from "./components/MetricCards";
 import TerrainView from "./components/TerrainView";
+import RoverStatus from "./components/RoverStatus";
 import TimeSeries from "./components/TimeSeries";
 import Compare, { MAX_COMPARE } from "./components/Compare";
 import { analyze as requestAnalysis, getSites } from "./api/client";
@@ -115,6 +116,7 @@ export default function App() {
             lon={site.lon}
             sun={tracks && { az: tracks.sun.az[index], el: tracks.sun.el[index] }}
             earth={tracks && { az: tracks.earth.az[index], el: tracks.earth.el[index] }}
+            overlay={tracks && <RoverStatus analysis={tracks} index={index} />}
           />
           <TimeSeries analysis={analysis} timeIndex={index} maxIndex={maxIndex} onScrub={setTimeIndex} />
           <Compare pinned={pinned} onRemove={(i) => setPinned(pinned.filter((_, j) => j !== i))} />

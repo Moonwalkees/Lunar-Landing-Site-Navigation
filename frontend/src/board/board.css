@@ -222,7 +222,7 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .u3d .terrain-note { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px;
   font: 400 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
 .u3d .actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.u3d .actions button { font: 700 18px var(--font-dot); color: var(--ash); background: none; border: 1px solid var(--ash-dim); padding: 0 14px; min-height: 44px; border-radius: 0; cursor: pointer; }
+.u3d .actions button { text-transform: uppercase; font: 700 18px var(--font-dot); color: var(--ash); background: none; border: 1px solid var(--ash-dim); padding: 0 14px; min-height: 44px; border-radius: 0; cursor: pointer; }
 .u3d .actions button[aria-pressed="true"] { color: var(--space); background: var(--regolith); border-color: var(--regolith); }
 .u3d .actions button:disabled { color: var(--ash-dim); cursor: default; }
 .u3d .terrain-stage canvas.terrain-map { cursor: grab; }
