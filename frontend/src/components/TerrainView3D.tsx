@@ -15,7 +15,7 @@ interface Props {
   sun: SkyPosition | null;
   earth: SkyPosition | null;
   view: View3D;
-  // The panel's view buttons (bird's-eye, orbit, surface), shown before High detail.
+  // The panel's view buttons (bird's-eye, orbit, surface).
   viewButtons: ReactNode;
 }
 
@@ -58,7 +58,6 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons 
   const unity = useRef<UnityInstance | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
   const [progress, setProgress] = useState(0);
-  const [highDetail, setHighDetail] = useState(false);
 
   const tile = terrainTileFor(lat, lon);
 
@@ -138,14 +137,6 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons 
     unity.current.SendMessage("Bridge", "SetState", JSON.stringify(message));
   }, [status, tile, lat, lon, sunAz, sunEl, earthAz, earthEl, view]);
 
-  // Moving to another tile starts again at standard detail.
-  useEffect(() => setHighDetail(false), [tile]);
-
-  const loadHighDetail = () => {
-    unity.current?.SendMessage("Bridge", "SetDetail", "high");
-    setHighDetail(true);
-  };
-
   return (
     <>
       <div className="terrain-stage" ref={stage}>
@@ -160,21 +151,7 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons 
           </div>
         )}
       </div>
-      <div className="actions">
-        {viewButtons}
-        <button
-          className="secondary"
-          onClick={loadHighDetail}
-          disabled={status !== "ready" || !tile?.highDetail || highDetail}
-          title={
-            tile && !tile.highDetail
-              ? "This area only has 20 m terrain, so there is no finer version."
-              : "Downloads finer terrain for this area (about 12 MB). Worth it for close-up views."
-          }
-        >
-          {highDetail ? "High detail on" : "High detail"}
-        </button>
-      </div>
+      <div className="actions">{viewButtons}</div>
       <p className="muted terrain-hint">
         Drag to look around, scroll to zoom.
         {(!sun || !earth) && " The Sun and Earth are at example angles until Analyze supplies real ones."}

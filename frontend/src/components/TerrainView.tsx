@@ -3,7 +3,7 @@ import TerrainMap from "./TerrainMap";
 import type { SkyPosition, View3D } from "./TerrainView3D";
 
 // The orbit and surface views are Unity WebGL (doc/3d-view.md). They are only loaded, and the
-// 68 MB build only downloaded, once the user picks one of them.
+// 53 MB build only downloaded, once the user picks one of them.
 const TerrainView3D = lazy(() => import("./TerrainView3D"));
 
 interface Props {

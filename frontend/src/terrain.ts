@@ -7,14 +7,13 @@ export interface TerrainTile {
   cornerX: number;
   cornerY: number;
   size: number;
-  highDetail: boolean; // whether finer terrain can be downloaded for this area
 }
 
 export const TERRAIN_TILES: TerrainTile[] = [
-  { name: "Connecting Ridge", cornerX: -18998.047, cornerY: -19998.047, size: 15996.095, highDetail: true },
-  { name: "Shackleton rim", cornerX: -8998.047, cornerY: -14998.047, size: 15996.095, highDetail: true },
-  { name: "Shackleton crater", cornerX: -296.096, cornerY: -14396.096, size: 15992.191, highDetail: false },
-  { name: "Malapert Massif", cornerX: -1856.096, cornerY: 113183.904, size: 15992.191, highDetail: false },
+  { name: "Connecting Ridge", cornerX: -18998.047, cornerY: -19998.047, size: 15996.095 },
+  { name: "Shackleton rim", cornerX: -8998.047, cornerY: -14998.047, size: 15996.095 },
+  { name: "Shackleton crater", cornerX: -296.096, cornerY: -14396.096, size: 15992.191 },
+  { name: "Malapert Massif", cornerX: -1856.096, cornerY: 113183.904, size: 15992.191 },
 ];
 
 const MOON_RADIUS_M = 1737400;
