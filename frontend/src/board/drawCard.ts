@@ -78,8 +78,11 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
   // ---- Sun / Earth / both over the window ----
   y = strip(g, a, i, M, y, INNER) + 36;
 
-  // ---- rover and eclipse ----
+  // ---- mission survival (scope.md Core 5): does the battery last through every dark spell? ----
   const half = INNER / 2;
+  y = survival(g, a, M, y, half) + 40;
+
+  // ---- rover and eclipse ----
   caption(g, "Rover", M, y);
   text(g, roverName(a.rover), M, y + 30, `800 32px ${DOT}`, "--regolith");
   caption(g, `${n0(a.rover.solarW)} W solar · ${n0(a.rover.batteryWh)} Wh · uses ${n0(a.rover.loadW)} W`, M, y + 74, "--ash", "left", 18);
@@ -114,6 +117,30 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
 }
 
 // ---------- pieces ----------
+
+// Survival as the backend counts it: the battery never reaches 0 Wh in the window (utils.py).
+// Left: the verdict, and the longest dark against how long a full battery lasts at the rover's
+// load. Right: the lowest charge, or when the battery first runs out and for how much of the window.
+function survival(g: G, a: Analysis, x: number, y: number, half: number): number {
+  const cap = a.rover.batteryWh, load = a.rover.loadW, b = a.batteryWh;
+  const ok = a.metrics.survives ?? b.every((v) => v > 0);
+  const lasts = load > 0 ? `battery lasts ${n0(cap / load)} h` : "no load on the battery";
+  caption(g, "Mission survival", x, y);
+  text(g, ok ? "SURVIVES THE WINDOW" : "BATTERY RUNS OUT", x, y + 30, `800 32px ${DOT}`, ok ? "--ok" : "--selected");
+  caption(g, `Longest dark ${hours(a.metrics.longestNightH).replace("h", " h")} · ${lasts}`, x, y + 74, "--ash", "left", 18);
+  caption(g, "Battery", x + half, y);
+  if (ok) {
+    const min = a.metrics.batteryMinWh ?? Math.min(...b);
+    text(g, `LOWEST ${n0(min)} WH`, x + half, y + 30, `800 32px ${DOT}`, "--regolith");
+    caption(g, `${Math.round((min / cap) * 100)}% of ${n0(cap)} Wh`, x + half, y + 74, "--ash", "left", 18);
+  } else {
+    const first = b.findIndex((v) => v <= 0);
+    const empty = b.filter((v) => v <= 0).length / Math.max(1, b.length);
+    text(g, `EMPTY ${stamp(a.times[first])}`, x + half, y + 30, `800 32px ${DOT}`, "--selected");
+    caption(g, `Empty for ${Math.max(1, Math.round(empty * 100))}% of the window`, x + half, y + 74, "--ash", "left", 18);
+  }
+  return y + 74 + 18;
+}
 
 // The terrain seen from above, north up, as round dots: lit by the Sun at this time with the
 // real cast shadows (terrain2d.sunlight, as the hero and the 2D map), quantised to --space /
@@ -207,9 +234,10 @@ function readouts(g: G, a: Analysis, x: number, y: number) {
   }
 }
 
-// Three bands of dots across the window, as the board's dot chart: Sun, Earth and both. A column
-// is on when the condition holds for at least half of its steps. Eclipses mark the Sun band in
-// --selected; the card's time is a column of --regolith dots. Returns the y below it.
+// Bands of dots across the window, as the board's dot chart: Sun, Earth and both (a column is on
+// when the condition holds for at least half of its steps), then the battery as a level (dots lit
+// from the bottom by the column's mean charge, a --selected dot where it runs empty). Eclipses mark
+// the Sun band in --selected; the card's time is a column of --regolith dots. Returns the y below.
 function strip(g: G, a: Analysis, i: number, x: number, y: number, w: number): number {
   const PITCH = 4, R = 1.64, ROWS = 5, LABEL = 96, GAP = 10;
   caption(g, "Over the window", x, y);
@@ -246,7 +274,34 @@ function strip(g: G, a: Analysis, i: number, x: number, y: number, w: number): n
       g.fill(p);
     }
   });
-  y += 3 * (ROWS * PITCH) + 2 * GAP + 12;
+  {
+    const top = y + 3 * (ROWS * PITCH + GAP), cap = Math.max(1e-9, a.rover.batteryWh);
+    caption(g, "Batt", x, top + 1, "--regolith", "left", 18);
+    const paths: Record<string, Path2D> = {};
+    const add = (t: string) => (paths[t] ??= new Path2D());
+    for (let col = 0; col < cols; col++) {
+      const s = Math.floor((col / cols) * n), e = Math.max(s + 1, Math.floor(((col + 1) / cols) * n));
+      let sum = 0, empty = false;
+      for (let k = s; k < e; k++) {
+        const v = a.batteryWh[k] ?? 0;
+        sum += v;
+        if (v <= 0) empty = true;
+      }
+      const level = Math.round((sum / (e - s) / cap) * ROWS), px = x + LABEL + col * PITCH + PITCH / 2;
+      for (let r = 0; r < ROWS; r++) {
+        const fromBottom = ROWS - 1 - r;
+        const t = col === here ? "--regolith" : fromBottom < level ? "--regolith" : empty && fromBottom === 0 ? "--selected" : "--ash-dim";
+        const py = top + r * PITCH + PITCH / 2, p = add(t);
+        p.moveTo(px + R, py);
+        p.arc(px, py, R, 0, Math.PI * 2);
+      }
+    }
+    for (const [t, p] of Object.entries(paths)) {
+      g.fillStyle = color(t);
+      g.fill(p);
+    }
+  }
+  y += 4 * (ROWS * PITCH) + 3 * GAP + 12;
   caption(g, (a.times[0] ?? "").slice(0, 10), x + LABEL, y, "--ash", "left", 16);
   caption(g, (a.times[n - 1] ?? "").slice(0, 10), x + w, y, "--ash", "right", 16);
   return y + 16;
