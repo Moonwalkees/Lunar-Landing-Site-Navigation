@@ -1,5 +1,5 @@
 import UiSwitch from "./UiSwitch";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import SiteForm from "./components/SiteForm";
 import MetricCards from "./components/MetricCards";
 import TerrainView from "./components/TerrainView";
@@ -9,6 +9,7 @@ import Compare, { MAX_COMPARE } from "./components/Compare";
 import { analyze as requestAnalysis, getSites } from "./api/client";
 import { FALLBACK_SITE, defaultSite } from "./sites";
 import { DEFAULT_ROVER } from "./rovers";
+import { loadClassic, saveClassic } from "./persist";
 import { EMPTY_METRICS, type Analysis, type Metrics, type PinnedSite, type Preset, type SiteInput } from "./types";
 
 // Plotly is most of the bundle, so the panorama loads separately and the rest of the page doesn't wait for it.
@@ -17,13 +18,26 @@ const Panorama = lazy(() => import("./components/Panorama"));
 const today = new Date().toISOString().slice(0, 10);
 
 export default function App() {
-  const [site, setSite] = useState<SiteInput>({
-    ...FALLBACK_SITE,
-    startDate: today,
-    days: 29.5, // one lunar month
-    stepHours: 1,
-    rover: DEFAULT_ROVER,
-  });
+  // The form as the user left it last visit (src/persist.ts), else the defaults.
+  const [site, setSite] = useState<SiteInput>(
+    () =>
+      loadClassic() ?? {
+        ...FALLBACK_SITE,
+        startDate: today,
+        days: 29.5, // one lunar month
+        stepHours: 1,
+        rover: DEFAULT_ROVER,
+      },
+  );
+  // Only a form the user has edited is saved, so the default start date stays "today" on every visit.
+  const edited = useRef(false);
+  const editSite = (s: SiteInput) => {
+    edited.current = true;
+    setSite(s);
+  };
+  useEffect(() => {
+    if (edited.current) saveClassic(site);
+  }, [site]);
   // Until GET /sites answers (or if it never does), offer the fallback site only.
   const [presets, setPresets] = useState<Preset[]>([FALLBACK_SITE]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
@@ -102,7 +116,7 @@ export default function App() {
             site={site}
             presets={presets}
             presetsError={presetsError}
-            onChange={setSite}
+            onChange={editSite}
             onAnalyze={analyze}
             analyzing={analyzing}
             onAddToCompare={addToCompare}
@@ -120,6 +134,8 @@ export default function App() {
             sun={tracks && { az: tracks.sun.az[index], el: tracks.sun.el[index] }}
             earth={tracks && { az: tracks.earth.az[index], el: tracks.earth.el[index] }}
             overlay={tracks && <RoverStatus analysis={tracks} index={index} />}
+            analysis={tracks}
+            index={index}
           />
           <TimeSeries analysis={analysis} timeIndex={index} maxIndex={maxIndex} onScrub={setTimeIndex} />
           <Compare pinned={pinned} onRemove={(i) => setPinned(pinned.filter((_, j) => j !== i))} />

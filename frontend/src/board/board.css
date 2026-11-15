@@ -168,9 +168,9 @@ a.cbtn { display: inline-flex; align-items: center; justify-content: center; tex
 .board-note { margin-top: 10px; }
 
 /* Boxes are always solid black; the lit tint and LOS static only show in the gaps between them. */
-.panel { background: var(--space); border: 1px solid var(--ash-dim); position: relative; padding: 18px 14px 12px; min-width: 0; }
-/* Only the part below the panel's top border is black (it hides the border line); above it the page shows through. */
-.cap { position: absolute; top: -8px; left: 12px; background: linear-gradient(transparent 7px, var(--space) 7px); padding: 0 6px; max-width: calc(100% - 24px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel { background: var(--space); border: 1px solid var(--ash-dim); position: relative; padding: 28px 14px 12px; min-width: 0; }
+/* The caption sits just inside the top border, in the panel's top padding, so it never cuts the border line. */
+.cap { position: absolute; top: 8px; left: 14px; max-width: calc(100% - 28px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dotcv { width: 100%; display: block; }
 .dotcv.scrub { touch-action: none; cursor: ew-resize; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-weight: 500; font-size: 18px; color: var(--ash); }
@@ -279,6 +279,17 @@ a.cbtn { display: inline-flex; align-items: center; justify-content: center; tex
 .u3d .terrain-stage canvas.terrain-map { cursor: grab; }
 .u3d .terrain-stage canvas.terrain-map:active { cursor: grabbing; }
 .u3d .terrain-readout { position: absolute; top: 8px; right: 8px; pointer-events: none; font: 400 11px var(--font-mono); letter-spacing: .08em; color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); padding: 2px 6px; }
+.u3d .terrain-legend { position: absolute; right: 8px; bottom: 8px; width: 230px; max-width: calc(100% - 16px); pointer-events: none; font: 400 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); padding: 6px 8px; }
+.u3d .terrain-legend-row { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 6px; margin-top: 4px; }
+.u3d .terrain-legend-bar { height: 8px; }
+.u3d .terrain-legend-ends { margin-top: 2px; color: var(--ash); }
+.u3d .terrain-legend-ends > div { display: flex; justify-content: space-between; }
+.u3d .terrain-legend-note { margin-top: 4px; color: var(--ash); }
+.u3d .terrain-legend-here { margin-top: 4px; color: var(--regolith); }
+.u3d .actions.forecast-controls { align-items: center; }
+.u3d .actions.forecast-controls button { font-size: 15px; min-height: 32px; padding: 0 10px; }
+.u3d .forecast-label { font: 400 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); margin-left: 8px; }
+.u3d .forecast-label:first-child { margin-left: 0; }
 .u3d .terrain-hint { margin: 0; font: 400 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
 
 @media (prefers-reduced-motion: reduce) { .alert { animation: none; } html, body, .console, .dock, body::before { transition: none; } html.los body::before { animation: none; } }

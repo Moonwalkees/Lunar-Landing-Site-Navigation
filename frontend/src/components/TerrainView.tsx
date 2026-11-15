@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState, type ReactNode } from "react";
 import TerrainMap from "./TerrainMap";
 import { TERRAIN_TILES, terrainTileFor } from "../terrain";
+import type { Analysis } from "../types";
 import type { SkyPosition, View3D } from "./TerrainView3D";
 
 // The orbit and surface views are Unity WebGL (doc/3d-view.md). They are only loaded, and the
@@ -15,6 +16,9 @@ interface Props {
   earth: SkyPosition | null;
   // Drawn over the top-right corner of whichever view is showing.
   overlay?: ReactNode;
+  // For the 2D map's forecast overlay.
+  analysis?: Analysis | null;
+  index?: number;
 }
 
 type View = "birdseye" | View3D;
@@ -26,7 +30,7 @@ const VIEWS: { id: View; label: string; title?: string }[] = [
 ];
 
 // Terrain around the site. Opens on the light bird's-eye map; orbit and surface are the 3D views.
-export default function TerrainView({ overlay, ...props }: Props) {
+export default function TerrainView({ overlay, analysis, index, ...props }: Props) {
   const [view, setView] = useState<View>("birdseye");
   // The 3D views only have terrain for some south pole areas; elsewhere the panel stays on the map.
   const has3D = terrainTileFor(props.lat, props.lon) !== null;
@@ -51,7 +55,7 @@ export default function TerrainView({ overlay, ...props }: Props) {
       <div className="terrain-wrap">
       {overlay}
       {shown === "birdseye" ? (
-        <TerrainMap {...props} viewButtons={viewButtons} />
+        <TerrainMap {...props} analysis={analysis} index={index} viewButtons={viewButtons} />
       ) : (
         <Suspense
           fallback={
