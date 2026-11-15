@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getTerrain } from "../api/client";
-import { paint, relief, sunlight } from "../terrain2d";
+import { occlusion, paint, relief, sunlight } from "../terrain2d";
 import type { TerrainGrid } from "../types";
 import type { SkyPosition } from "./TerrainView3D";
 
@@ -35,7 +35,7 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
   const [grid, setGrid] = useState<TerrainGrid | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<ViewBox | null>(null);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [hover, setHover] = useState<{ col: number; row: number } | null>(null);
 
   // Fetch the grid. The site form changes on every keystroke, so wait until typing pauses.
@@ -75,35 +75,41 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
   // A new site starts centred and zoomed out.
   useEffect(() => setBox(null), [grid]);
 
-  const shade = useMemo(() => (grid ? relief(grid) : null), [grid]);
+  const ao = useMemo(() => (grid ? occlusion(grid) : null), [grid]);
   const sunAz = sun?.az, sunEl = sun?.el;
   const image = useMemo(() => {
-    if (!grid || !shade) return null;
-    const lit = sunAz !== undefined && sunEl !== undefined ? sunlight(grid, sunAz, sunEl) : null;
-    const pixels = paint(shade, lit);
+    if (!grid || !ao) return null;
+    const known = sunAz !== undefined && sunEl !== undefined;
+    const shade = relief(grid, known ? sunAz : undefined);
+    const lit = known ? sunlight(grid, sunAz, sunEl) : null;
+    const pixels = paint(shade, ao, lit);
     const offscreen = document.createElement("canvas");
-    offscreen.width = offscreen.height = grid.size;
+    offscreen.width = offscreen.height = pixels.width;
     offscreen.getContext("2d")!.putImageData(pixels, 0, 0);
     return offscreen;
-  }, [grid, shade, sunAz, sunEl]);
+  }, [grid, ao, sunAz, sunEl]);
 
-  // Follow the panel's width.
+  // Follow the panel's size. The canvas fills its stage, so its bitmap has to match the stage's
+  // real width and height, or the browser stretches the map (BUG-009).
   useEffect(() => {
     const el = canvas.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    const observer = new ResizeObserver(([entry]) =>
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   const n = grid?.size ?? 1;
-  const view = box ?? { zoom: 1, x: (n - 1) / 2, y: (n - 1) / 2 };
+  const { width } = size;
+  const height = size.height > 0 ? size.height : Math.round((width * 9) / 16);
+  const view = box ?? startView(n, width, height);
 
   // Draw.
   useEffect(() => {
     const el = canvas.current;
     if (!el || width === 0) return;
-    const height = Math.round((width * 9) / 16);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     el.width = Math.round(width * dpr);
     el.height = Math.round(height * dpr);
@@ -119,8 +125,31 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
       height / 2 + (row - view.y) * scale,
     ];
     const [left, top] = toScreen(-0.5, -0.5);
-    ctx.imageSmoothingEnabled = view.zoom < 4;
+    // The image is already upsampled and smoothly interpolated; keep smoothing on at every zoom so
+    // no grid cells show as blocks.
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(image, left, top, n * scale, n * scale);
+
+    // Soft vignette, so the edges of the map recede and the site stays the focus.
+    const vignette = ctx.createRadialGradient(
+      width / 2, height / 2, Math.min(width, height) * 0.35,
+      width / 2, height / 2, Math.hypot(width, height) / 2,
+    );
+    vignette.addColorStop(0, "rgba(0,0,0,0)");
+    vignette.addColorStop(1, "rgba(0,0,0,0.45)");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+
+    // Text with a dark halo, so it reads on bright and dark ground alike.
+    const haloText = (text: string, x: number, y: number) => {
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(0,0,0,0.85)";
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = TEXT;
+      ctx.fillText(text, x, y);
+    };
 
     // Arrows from the site toward the Sun and the Earth, ending at the edge of the view.
     const centre = (n - 1) / 2;
@@ -136,12 +165,19 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
       if (!(reach > 20)) return; // the site is scrolled out of view in that direction
       const ex = sx + dx * reach, ey = sy + dy * reach;
       const below = body.el < 0;
-      ctx.strokeStyle = colour;
-      ctx.lineWidth = 2;
       ctx.setLineDash(below ? [4, 4] : []);
+      // A dark underlay, then the coloured ray with a soft glow.
       ctx.beginPath();
       ctx.moveTo(sx + dx * 10, sy + dy * 10);
       ctx.lineTo(ex, ey);
+      ctx.strokeStyle = "rgba(0,0,0,0.6)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.save();
+      ctx.shadowColor = colour;
+      ctx.shadowBlur = below ? 0 : 8;
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 2;
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.beginPath();
@@ -151,15 +187,22 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
         ctx.fill();
         ctx.stroke();
       } else {
+        ctx.shadowBlur = 14;
         ctx.fillStyle = colour;
         ctx.fill();
       }
+      ctx.restore();
+      // Label beside the disc, kept fully inside the canvas.
+      const text = `${label} ${body.az.toFixed(0)}°, ${body.el >= 0 ? "+" : ""}${body.el.toFixed(1)}°`;
       ctx.font = "12px system-ui, sans-serif";
-      ctx.fillStyle = TEXT;
-      ctx.textAlign = dx > 0.3 ? "right" : dx < -0.3 ? "left" : "center";
-      ctx.textBaseline = dy > 0.3 ? "bottom" : "top";
-      const lx = ex - dx * 12, ly = ey - dy * 12 + (dy > 0.3 ? -4 : dy < -0.3 ? 4 : 10);
-      ctx.fillText(`${label} ${body.az.toFixed(0)}°, ${body.el >= 0 ? "+" : ""}${body.el.toFixed(1)}°`, lx, ly);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const tw = ctx.measureText(text).width;
+      let lx = dx > 0.3 ? ex - 14 - tw : dx < -0.3 ? ex + 14 : ex - tw / 2;
+      let ly = dy > 0.3 ? ey - 16 : dy < -0.3 ? ey + 16 : ey + (dx === 0 ? 16 : 0);
+      lx = Math.min(width - 6 - tw, Math.max(6, lx));
+      ly = Math.min(height - 10, Math.max(10, ly));
+      haloText(text, lx, ly);
     };
     if (earth) arrow(earth, EARTH, "Earth");
     if (sun) arrow(sun, SUN, "Sun");
@@ -185,7 +228,7 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
     ctx.font = "11px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("N", 18, 29);
+    haloText("N", 18, 29);
 
     // Scale bar: a round number of km close to a fifth of the width.
     const metresPerPixel = grid.spacingM / scale;
@@ -198,8 +241,8 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
     ctx.fillRect(12, height - 16, bar, 3);
     ctx.textAlign = "left";
     ctx.textBaseline = "bottom";
-    ctx.fillText(nice >= 1000 ? nice / 1000 + " km" : nice + " m", 12, height - 20);
-  }, [grid, image, width, view.zoom, view.x, view.y, n, sun, earth]);
+    haloText(nice >= 1000 ? nice / 1000 + " km" : nice + " m", 12, height - 20);
+  }, [grid, image, width, height, view.zoom, view.x, view.y, n, sun, earth]);
 
   // Wheel zooms about the pointer. Added by hand because React's wheel listener is passive.
   useEffect(() => {
@@ -209,7 +252,7 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       setBox((b) => {
-        const v = b ?? { zoom: 1, x: (n - 1) / 2, y: (n - 1) / 2 };
+        const v = b ?? startView(n, rect.width, rect.height);
         const zoom = Math.min(16, Math.max(1, v.zoom * Math.exp(-e.deltaY * 0.0015)));
         const scale = Math.min(rect.width, rect.height) / n;
         const px = e.clientX - rect.left - rect.width / 2, py = e.clientY - rect.top - rect.height / 2;
@@ -289,6 +332,13 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
       </p>
     </>
   );
+}
+
+// Opening view: centred on the site and zoomed so the square map covers the whole stage, with no
+// black bars at the sides. Zooming out (to zoom 1) still shows the whole 24 km square.
+function startView(n: number, width: number, height: number): ViewBox {
+  const zoom = width > 0 && height > 0 ? Math.max(width, height) / Math.min(width, height) : 1;
+  return { zoom, x: (n - 1) / 2, y: (n - 1) / 2 };
 }
 
 // Keep at least part of the grid on screen.

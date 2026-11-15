@@ -19,9 +19,10 @@ Returns a 241 x 241 grid of heights (metres above the 1737.4 km sphere), one eve
 
 ## What it shows
 
-- **Relief**: grey hillshade lit from the north-west, so the shape reads before any analysis.
-- **Shadows**: after Analyze, each cell looks toward the Sun over the curved surface for terrain in the way, and gets the share of the Sun's disc it sees. About 10-15 ms per Sun position, so it follows the scrubber.
-- **Sun and Earth**: arrows from the site toward each azimuth, labelled with azimuth and elevation. Dashed with a hollow disc when the body is below the level plane.
+- **Relief**: hillshade with light ambient occlusion (hollows darker), so the shape reads before any analysis. Before Analyze it is neutral grey lit from the north-west; after, it is lit 65% from the Sun's azimuth and 35% from the north-west, so slopes agree with the shadows while craters still read as hollows.
+- **Shadows**: after Analyze, each cell looks toward the Sun over the curved surface for terrain in the way, and gets the share of the Sun's disc it sees. Sunlit ground is warm grey, shadow is deep blue with the relief still visible. About 10-15 ms per Sun position with the Sun well up (slower near the horizon, see BUG-010).
+- **Smooth at any zoom**: the image is painted at 2x the grid with bilinear interpolation, and the shadow edge is sharpened with a smoothstep, so there are no 100 m blocks or stepped shadow edges. The canvas matches its box's real width and height (no stretching) and opens zoomed to fill the box; zoom out to see the whole square. About 13 ms per Sun position on top of the shadows.
+- **Sun and Earth**: glowing arrows from the site toward each azimuth, labelled with azimuth and elevation (dark halo, always kept inside the map). Dashed with a hollow disc when the body is below the level plane.
 
 Like the 3D view, it only displays the Sun and Earth angles from `POST /analyze` at the scrubber index; it never computes them.
 
