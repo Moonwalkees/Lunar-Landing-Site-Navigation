@@ -68,12 +68,13 @@ export function MetricsPanel({ name, metrics }: { name: string; metrics: Metrics
 interface MissionProps {
   win: MissionWindow;
   onWindow: (w: MissionWindow) => void;
+  onReset: () => void; // forget the saved setup and reload with the defaults
 }
 
 // Text inputs with decimal keyboards, parsed on submit, so a leading minus can be typed (BUG-005).
 const num = (s: string) => (s.trim() === "" ? NaN : Number(s));
 
-export function Mission({ win, onWindow }: MissionProps) {
+export function Mission({ win, onWindow, onReset }: MissionProps) {
   const [start, setStart] = useState(win.startDate);
   const [days, setDays] = useState(String(win.days));
   const [step, setStep] = useState(String(win.stepHours));
@@ -137,7 +138,11 @@ export function Mission({ win, onWindow }: MissionProps) {
           <label className="field"><span className="mono">Power use · W</span>
             <input inputMode="decimal" value={use} onChange={roverField(setUse)} /></label>
         </div>
-        <div className="form-row"><button className="chip" type="submit">RUN</button></div>
+        <div className="form-row">
+          <button className="chip" type="submit">RUN</button>
+          <button className="chip" type="button" onClick={onReset}
+            title="Forget the saved sites, window and rover, and start again from the defaults">RESET</button>
+        </div>
         {winErr && <div className="form-err mono">{winErr}</div>}
       </form>
     </div>
