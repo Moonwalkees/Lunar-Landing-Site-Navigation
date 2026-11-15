@@ -127,8 +127,13 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .row[aria-selected="true"] { box-shadow: inset 1px 0 0 var(--selected); }
 .row[aria-selected="true"] .nm { color: var(--selected); }
 .row .rk { color: var(--ash); }
-/* Real preset names are long ("Shackleton crater (Artemis III)"), so they wrap to two lines. */
-.row .nm { font-weight: 800; font-size: 20px; line-height: 1.1; max-height: 2.2em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+/* Names wrap to at most three lines; a trailing "(...)" is shown as a tag under the name (splitName). */
+.row .nm { font-weight: 800; font-size: 20px; line-height: 1.1; min-width: 0; }
+.row .nm-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; max-height: 3.3em; overflow: hidden; overflow-wrap: break-word; }
+.row .tagq { display: block; margin-top: 3px; font: 400 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); white-space: pre-line; }
+/* In a row the 2D ONLY tag is plain text, flush with the name, like the qualifier tag. */
+.row .tag2d { display: block; margin-top: 3px; padding: 0; border: 0; }
+.console .tag2d { margin-left: 8px; }
 .row .sun { color: var(--sun); } .row .com { color: var(--earth); }
 /* LIT and COMMS right now: YES in the series colour, NO in grey. */
 .row .yn { font-weight: 800; white-space: nowrap; color: var(--ash); }
@@ -217,7 +222,7 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .u3d-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 .u3d-head .nm { font-weight: 900; font-size: 28px; line-height: 1; color: var(--selected); text-transform: uppercase; }
 /* Marks a site the 3D views have no terrain for (Apollo presets, most custom sites). */
-.tag2d { display: inline-block; margin-left: 8px; padding: 1px 5px; border: 1px dashed var(--ash-dim); vertical-align: middle;
+.tag2d { display: inline-block; margin: 3px 0 0; padding: 1px 5px; border: 1px dashed var(--ash-dim); vertical-align: middle;
   font: 400 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); white-space: nowrap; }
 .u3d-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 /* Rover readout over the detail views (RoverPanel.tsx). Status word and values change in hard steps. */

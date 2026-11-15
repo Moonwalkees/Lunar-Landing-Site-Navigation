@@ -137,6 +137,16 @@ export function offsetM(from: { lat: number; lon: number }, to: { lat: number; l
 
 // ---------- formatting ----------
 
+// A site name and its trailing qualifier: "Peak near Shackleton (Artemis III, 2022)" gives
+// ["Peak near Shackleton", "Artemis III" + newline + "2022 list"], one part per line (a bare year is
+// NASA's list of that year). The board shows the qualifier as a small tag, so the name fits its column.
+export function splitName(name: string): [string, string | null] {
+  const m = /^(.*\S)\s*\(([^()]+)\)\s*$/.exec(name);
+  if (!m) return [name, null];
+  const parts = m[2].split(/,\s*/).map((p) => (/^\d{4}$/.test(p) ? p + " list" : p));
+  return [m[1], parts.join("\n")];
+}
+
 export const pad2 = (n: number) => String(n).padStart(2, "0");
 export const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : v.toFixed(1));
 export const hours = (v: number | null | undefined) => (v === null || v === undefined ? "—" : Math.round(v) + "h");

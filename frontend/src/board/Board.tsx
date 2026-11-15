@@ -1,6 +1,6 @@
 import { terrainTileFor } from "../terrain";
 import type { Metrics } from "../types";
-import { hours, pad2, pct, type Row, type SortKey } from "./data";
+import { hours, pad2, pct, splitName, type Row, type SortKey } from "./data";
 import SiteMenu, { type SiteActions } from "./SiteMenu";
 
 const SORTS: { k: SortKey; label: string }[] = [
@@ -91,7 +91,8 @@ export default function Board({ rows, selectedId, sortKey, onSort, onSelect, add
             >
               <span className="rk">{a ? pad2(n + 1) : "--"}</span>
               <span className="nm">
-                {site.name}
+                <span className="nm-text">{splitName(site.name)[0]}</span>
+                {splitName(site.name)[1] && <span className="tagq">{splitName(site.name)[1]}</span>}
                 {!terrainTileFor(site.lat, site.lon) && <span className="tag2d" title="No 3D terrain here: the detail view shows the 2D map only">2D ONLY</span>}
               </span>
               <span className="stats">

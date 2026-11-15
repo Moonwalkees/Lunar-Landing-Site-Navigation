@@ -4,7 +4,7 @@ import { FALLBACK_SITE, defaultSite } from "../sites";
 import type { Preset, TerrainGrid } from "../types";
 import Board from "./Board";
 import {
-  STATE_LABEL, azDeg, cellSteps, hours, pct, rankRows, resultKey, score, signedDeg, stamp, stateAt,
+  STATE_LABEL, azDeg, cellSteps, hours, pct, rankRows, resultKey, score, signedDeg, splitName, stamp, stateAt,
   type BoardSite, type MissionWindow, type Row, type SiteResult, type SortKey,
 } from "./data";
 import Detail3D from "./Detail3D";
@@ -96,7 +96,7 @@ export default function BoardApp() {
   const earth = a ? { az: a.earth.az[ai], el: a.earth.el[ai] } : null;
 
   const pins: MapPin[] = ranked.map((r, n) => ({
-    id: r.site.id, name: r.site.name, lat: r.site.lat, lon: r.site.lon,
+    id: r.site.id, name: splitName(r.site.name)[0], lat: r.site.lat, lon: r.site.lon,
     rank: r.analysis ? n + 1 : null, score: r.score, dark: r.state === "dark",
   }));
 
