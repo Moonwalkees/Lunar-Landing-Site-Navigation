@@ -93,48 +93,121 @@ export function occlusion(grid: TerrainGrid): Float32Array {
   return out;
 }
 
+// Steps a cell marches itself before handing over to the shared far-field hull. Close in, the
+// shared line can pass up to half a cell beside the cell's own ray, which at a grazing Sun is
+// enough to cast false shadows, so the near field is followed exactly. Each extra step costs about
+// 1 ms on the 241 x 241 grid; past 4 the shadows barely change.
+const NEAR_STEPS = 4;
+
+// Tangent of the terrain horizon each cell sees looking along azimuth `az` (degrees), over the
+// curved surface; -Infinity where nothing inside the grid lies that way.
+//
+// Near field: each cell marches its own ray for NEAR_STEPS steps.
+// Far field: the grid is cut into lines parallel to `az`, one step along the longer axis at a time
+// (heights interpolated across), and every cell is served by the line passing nearest to it. Each
+// line is swept once from its far (`az`) end, keeping the upper convex hull of the terrain from
+// NEAR_STEPS onward; the highest point a cell sees is where its tangent touches that hull, found by
+// binary search. That is O(n² log n) for the whole grid at any Sun elevation (BUG-010: the old
+// per-cell march was O(n³) at low Sun, ~80 ms at the polar sites).
+//
+// Curvature: a point d metres ahead sits d²/2R lower. With heights recast as h - x²/2R (x along
+// the line), slopes on the recast profile are the true ones minus x0/R, a constant per cell, so
+// the hull works on the recast heights and x0/R is added back.
+function horizonTangent(grid: TerrainGrid, az: number): Float32Array {
+  const { size: n, spacingM: s, heights: h } = grid;
+  const dCol = Math.sin(az * RAD); // toward `az`, in cells
+  const dRow = -Math.cos(az * RAD);
+  const alongCols = Math.abs(dCol) >= Math.abs(dRow); // each step moves one column (else one row)
+  const lead = alongCols ? dCol : dRow;
+  const ratio = (alongCols ? dRow : dCol) / Math.abs(lead); // cross-axis cells per step toward `az`
+  const stepM = s * Math.hypot(1, ratio);
+  const twoR = 2 * MOON_RADIUS_M;
+
+  // Grid index of step q (counted toward `az` from the opposite edge) at cross cell 0, and the
+  // index stride from one cross cell to the next.
+  const base = new Int32Array(n);
+  for (let q = 0; q < n; q++) base[q] = (lead > 0 ? q : n - 1 - q) * (alongCols ? 1 : n);
+  const crossStride = alongCols ? n : 1;
+  // Height at step q and fractional cross position f, interpolated across.
+  const heightAt = (q: number, f: number) => {
+    const f0 = f >= n - 1 ? n - 2 : f | 0; // f >= 0 here
+    const a = base[q] + f0 * crossStride;
+    return h[a] + (h[a + crossStride] - h[a]) * (f - f0);
+  };
+
+  const out = new Float32Array(n * n).fill(-Infinity);
+  const hullX = new Float64Array(n), hullY = new Float64Array(n);
+  const shift = new Int32Array(n);
+  for (let q = 0; q < n; q++) shift[q] = Math.round(q * ratio);
+
+  // Line c runs through cross position c + q·ratio; the cell nearest it at step q is c + shift[q].
+  for (let c = -(n - 1); c < 2 * n - 1; c++) {
+    let top = 0;
+    for (let q = n - 1; q >= 0; q--) {
+      // Far field: the line's point NEAR_STEPS ahead joins the hull.
+      const qf = q + NEAR_STEPS, ff = c + qf * ratio;
+      if (qf < n && ff >= 0 && ff <= n - 1) {
+        const x = qf * stepM, y = heightAt(qf, ff) - (x * x) / twoR;
+        while (top >= 2 && (hullY[top - 1] - y) * (hullX[top - 2] - x) <= (hullY[top - 2] - y) * (hullX[top - 1] - x)) top--;
+        hullX[top] = x;
+        hullY[top] = y;
+        top++;
+      }
+
+      const cross = c + shift[q];
+      if (cross < 0 || cross >= n) continue;
+      const k = base[q] + cross * crossStride;
+      const h0 = h[k];
+      let best = -Infinity;
+
+      // Near field: this cell's own ray.
+      for (let d = 1; d < NEAR_STEPS && q + d < n; d++) {
+        const f = cross + d * ratio;
+        if (f < 0 || f > n - 1) break;
+        const dist = d * stepM;
+        const t = (heightAt(q + d, f) - h0 - (dist * dist) / twoR) / dist;
+        if (t > best) best = t;
+      }
+
+      // Far field: slope from this cell to the hull rises then falls along it; find the peak.
+      if (top > 0) {
+        const x0 = q * stepM, y0 = h0 - (x0 * x0) / twoR;
+        let lo = 0, hi = top - 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          // slope(mid) < slope(mid + 1), cross-multiplied (both runs are positive)
+          if ((hullY[mid] - y0) * (hullX[mid + 1] - x0) < (hullY[mid + 1] - y0) * (hullX[mid] - x0)) lo = mid + 1;
+          else hi = mid;
+        }
+        const t = (hullY[lo] - y0) / (hullX[lo] - x0) + x0 / MOON_RADIUS_M;
+        if (t > best) best = t;
+      }
+      out[k] = best;
+    }
+  }
+  return out;
+}
+
 // How much of the Sun's disc each cell sees, 0 to 1, for a Sun at `az` / `el` (degrees) as seen
 // from the site at the centre of the grid. Each cell looks along the Sun's azimuth over the curved
 // surface for the highest terrain in the way. Only terrain inside the grid can cast a shadow.
-// About 10-15 ms for the 241 x 241 grid on a laptop, so it can follow the scrubber.
+// A few ms for the 241 x 241 grid at any Sun elevation, so it can follow the scrubber.
 export function sunlight(grid: TerrainGrid, az: number, el: number): Float32Array {
-  const { size: n, spacingM: s, heights: h } = grid;
-  let top = -Infinity;
-  for (let k = 0; k < h.length; k++) if (h[k] > top) top = h[k];
-
-  const dCol = Math.sin(az * RAD); // one step toward the Sun, in cells
-  const dRow = -Math.cos(az * RAD);
+  const n = grid.size, s = grid.spacingM;
+  const tan = horizonTangent(grid, az);
+  const dCol = Math.sin(az * RAD), dRow = -Math.cos(az * RAD);
   const centre = (n - 1) / 2;
   const lit = new Float32Array(n * n);
-
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const h0 = h[i * n + j];
       // The Sun stands a little higher for cells nearer to it than the site, lower for those further away.
       const towardSunM = ((j - centre) * dCol - (i - centre) * dRow) * s;
       const elHere = el + (towardSunM / MOON_RADIUS_M) / RAD;
-      const tanTop = Math.tan((elHere + SUN_RADIUS_DEG) * RAD);
-      const tanBottom = Math.tan((elHere - SUN_RADIUS_DEG) * RAD);
-
-      let best = -Infinity; // tangent of the highest terrain angle seen toward the Sun
-      for (let step = 1; ; step++) {
-        const r = Math.round(i + dRow * step), c = Math.round(j + dCol * step);
-        if (r < 0 || r >= n || c < 0 || c >= n) break;
-        const d = step * s;
-        const drop = (d * d) / (2 * MOON_RADIUS_M); // the surface curves away below the level plane
-        const t = (h[r * n + c] - h0 - drop) / d;
-        if (t > best) {
-          best = t;
-          if (best >= tanTop) break; // the whole disc is hidden
-        }
-        // Nothing further out can rise above what is already known.
-        if ((top - h0 - drop) / d <= Math.max(best, tanBottom)) break;
-      }
-      const horizonDeg = best === -Infinity ? -90 : Math.atan(best) / RAD;
+      const t = tan[i * n + j];
+      const horizonDeg = t === -Infinity ? -90 : Math.atan(t) / RAD;
       lit[i * n + j] = Math.min(1, Math.max(0, (elHere - horizonDeg) / (2 * SUN_RADIUS_DEG) + 0.5));
     }
   }
-
   return lit;
 }
 
