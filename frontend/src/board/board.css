@@ -156,9 +156,9 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .board-note { margin-top: 10px; }
 
 /* Boxes are always solid black; the lit tint and LOS static only show in the gaps between them. */
-.panel { background: var(--space); border: 1px solid var(--ash-dim); position: relative; padding: 18px 14px 12px; min-width: 0; }
-/* Only the part below the panel's top border is black (it hides the border line); above it the page shows through. */
-.cap { position: absolute; top: -8px; left: 12px; background: linear-gradient(transparent 7px, var(--space) 7px); padding: 0 6px; max-width: calc(100% - 24px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel { background: var(--space); border: 1px solid var(--ash-dim); position: relative; padding: 28px 14px 12px; min-width: 0; }
+/* The caption sits just inside the top border, in the panel's top padding, so it never cuts the border line. */
+.cap { position: absolute; top: 8px; left: 14px; max-width: calc(100% - 28px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dotcv { width: 100%; display: block; }
 .dotcv.scrub { touch-action: none; cursor: ew-resize; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-weight: 500; font-size: 18px; color: var(--ash); }
