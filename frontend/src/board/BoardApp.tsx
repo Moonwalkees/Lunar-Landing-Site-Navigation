@@ -163,6 +163,8 @@ export default function BoardApp() {
   const closeDetail = useCallback(() => setOpen3D(false), []);
   // The mission card keeps the time step it was opened at (null while closed).
   const [cardAt, setCardAt] = useState<number | null>(null);
+  // On phones the console covers most of the map; HIDE folds it down to the site name.
+  const [consoleHidden, setConsoleHidden] = useState(false);
   const closeCard = useCallback(() => setCardAt(null), []);
 
   // Save the setup whenever it changes. The selection is saved only once the user has picked a site,
@@ -259,8 +261,15 @@ export default function BoardApp() {
             </div>
           </div>
           <div className="hud hint mono">Drag orbit · pinch zoom · tap a pin</div>
-          <div className="hud console">
-            <div className="nm">{sel.name}</div>
+          <div className={"hud console" + (consoleHidden ? " min" : "")}>
+            <div className="console-top">
+              <div className="nm">{consoleHidden ? splitName(sel.name)[0] : sel.name}</div>
+              {/* Phones only (board.css): fold the console down to the name so the map shows. */}
+              <button className="cbtn console-fold" aria-expanded={!consoleHidden} onClick={() => setConsoleHidden((v) => !v)}
+                aria-label={consoleHidden ? "Show the site details" : "Hide the site details to see the map"}>
+                {consoleHidden ? "SHOW" : "HIDE"}
+              </button>
+            </div>
             <div className="mono coord">
               LAT {sel.lat.toFixed(2)}° · LON {sel.lon.toFixed(2)}°E
               {!sel3D && <span className="tag2d">2D ONLY · NO 3D TERRAIN HERE</span>}
