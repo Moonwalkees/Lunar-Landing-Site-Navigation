@@ -203,9 +203,8 @@ export default function BoardApp() {
               <div><span className="mono">Lit</span>{yn(selLit, "s")}</div>
               <div><span className="mono">Comms</span>{yn(selAos, "e")}</div>
             </div>
-            {/* The same actions as each board row's ⋮ menu, as a list of buttons. */}
+            {/* The row ⋮ menu's actions as buttons (minus GO TO SITE: the console is already on the map). */}
             <div className="console-btns">
-              <button className="cbtn" onClick={selActions.onGo}>GO TO SITE</button>
               <button className="cbtn" aria-pressed={open3D} onClick={selActions.onSurface}>SURFACE VIEW</button>
               <button className="cbtn del" disabled={!selActions.onDelete} onClick={selActions.onDelete ?? undefined}
                 title={selActions.onDelete ? undefined : "The board needs at least one site"}>DELETE</button>

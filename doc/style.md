@@ -104,7 +104,7 @@ Max content width 1280 px. Side gutters are at least 16 px plus the safe-area in
 ### Board
 - Columns: rank, site, score, sun %, comms %, both %, longest dark (hours), LIT and COMMS right now (`YES` in `--sun` / `--earth`, `NO` in `--ash` Doto 300). Row text 18 px, site names 20 px. (Changed from a single NOW status word at the user's request, 2026-11-15.)
 - **+ ADD SITE** in the sort bar opens a lat/lon form above the rows. Custom rows are not tagged.
-- Each row ends in a **⋮** menu: GO TO SITE, SURFACE VIEW, DELETE. The site console shows the same three actions as a list of full-width buttons (DELETE in `--selected`). DELETE is disabled when only one site is left.
+- Each row ends in a **⋮** menu: GO TO SITE, SURFACE VIEW, DELETE. The site console shows SURFACE VIEW and DELETE as full-width buttons (DELETE in `--selected`); GO TO SITE is left out there since the console is already on the map. DELETE is disabled when only one site is left.
 - Row height at least 56 px. The selected row has a `--umbra` fill and a 1 px (hairline) `--selected` bar on the left, and the site name turns `--selected`.
 - Sun % is `--sun`, comms % is `--earth`.
 - A row in `DARK·LOS` is ghosted (Doto 300, `--ash`).

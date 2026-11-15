@@ -82,7 +82,7 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .kv b { display: block; font-weight: 900; font-size: 28px; line-height: 1; margin-top: 4px; }
 .kv .s { color: var(--sun); } .kv .e { color: var(--earth); }
 .kv .off { color: var(--ash); font-weight: 300; }
-.console-btns { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 10px; }
+.console-btns { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 20px; }
 .cbtn { font: 800 18px var(--font-dot); color: var(--regolith); background: none; border: 1px solid var(--regolith); min-height: 44px; border-radius: 0; cursor: pointer; touch-action: manipulation; padding: 0 8px; }
 .cbtn:active, .cbtn[aria-pressed="true"] { background: var(--regolith); color: var(--space); }
 .cbtn.del { color: var(--selected); border-color: var(--selected); }
