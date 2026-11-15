@@ -1,3 +1,4 @@
+import UiSwitch from "./UiSwitch";
 import { Suspense, lazy, useEffect, useState } from "react";
 import SiteForm from "./components/SiteForm";
 import MetricCards from "./components/MetricCards";
@@ -83,6 +84,7 @@ export default function App() {
   return (
     <div className="app">
       <header>
+        <UiSwitch />
         <h1>Lunar Landing Site Navigator</h1>
         <p className="muted">
           {site.name} · {site.lat.toFixed(2)}°, {site.lon.toFixed(2)}°E · {site.startDate} + {site.days} d

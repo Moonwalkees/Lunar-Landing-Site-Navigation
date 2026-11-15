@@ -136,7 +136,7 @@ function createEngine(
   };
 
   // ---- pins ----
-  interface PinObj { id: string; group: THREE.Group; mat: THREE.MeshBasicMaterial; hit: THREE.Mesh; top: number; label: HTMLDivElement }
+  interface PinObj { id: string; group: THREE.Group; mat: THREE.MeshBasicMaterial; top: number; label: HTMLDivElement }
   let pinObjs: PinObj[] = [];
   let lastPins: { pins: MapPin[]; selectedId: string } | null = null;
 
@@ -158,10 +158,7 @@ function createEngine(
       stem.position.y = total / 2;
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), mat);
       head.position.y = total + 0.22;
-      const hit = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-      hit.position.y = total * 0.6;
-      hit.userData.id = pin.id;
-      g.add(stem, head, hit);
+      g.add(stem, head);
       g.position.set(x, groundY(x, z), z);
       scene.add(g);
       if (sel) { ring.position.set(x, groundY(x, z) + 0.05, z); ring.visible = true; }
@@ -170,7 +167,7 @@ function createEngine(
       label.className = "pinlbl" + (sel ? " sel" : pin.dark ? " dim" : "");
       label.textContent = sel ? `${rank} ${pin.name.toUpperCase()}` : rank;
       labelLayer.appendChild(label);
-      pinObjs.push({ id: pin.id, group: g, mat, hit, top: total + 0.6, label });
+      pinObjs.push({ id: pin.id, group: g, mat, top: total + 0.6, label });
     }
   }
 
@@ -202,7 +199,31 @@ function createEngine(
   resize();
 
   // ---- tap a pin ----
-  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  // Picked in screen space: each pin is the on-screen segment from its foot to its label anchor,
+  // plus its label box, and the closest one within PICK_PX of the tap wins. (A 3D raycast against
+  // big invisible hit spheres picked whichever sphere was nearest the camera, so close-together
+  // pins stole each other's taps - BUG-008.)
+  const PICK_PX = 20;
+  const pa = new THREE.Vector3(), pb = new THREE.Vector3();
+  function pickPin(clientX: number, clientY: number): string | null {
+    const r = canvas.getBoundingClientRect();
+    const toPx = (v: THREE.Vector3) => { v.project(camera); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height, front: v.z < 1 }; };
+    let best: string | null = null, bestD = PICK_PX;
+    for (const p of pinObjs) {
+      if (p.label.style.display !== "none") {
+        const lb = p.label.getBoundingClientRect();
+        if (clientX >= lb.left && clientX <= lb.right && clientY >= lb.top && clientY <= lb.bottom) return p.id;
+      }
+      const a = toPx(pa.copy(p.group.position));
+      const b = toPx(pb.copy(p.group.position).setY(p.group.position.y + p.top));
+      if (!a.front || !b.front) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((clientX - a.x) * dx + (clientY - a.y) * dy) / len2));
+      const d = Math.hypot(clientX - (a.x + t * dx), clientY - (a.y + t * dy));
+      if (d < bestD) { bestD = d; best = p.id; }
+    }
+    return best;
+  }
   let down: { x: number; y: number; t: number } | null = null;
   const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; };
   const onUp = (e: PointerEvent) => {
@@ -210,12 +231,8 @@ function createEngine(
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t;
     down = null;
     if (moved > 8 || dt > 500) return;
-    const r = canvas.getBoundingClientRect();
-    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-    ray.setFromCamera(ndc, camera);
-    const hit = ray.intersectObjects(pinObjs.map((p) => p.hit), false)[0];
-    if (!hit) return;
-    const id = hit.object.userData.id as string;
+    const id = pickPin(e.clientX, e.clientY);
+    if (!id) return;
     if (id === lastPins?.selectedId) cb.open(); // tapping the selected pin drills into it
     else cb.select(id);
   };
