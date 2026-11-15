@@ -100,7 +100,8 @@ export function occlusion(grid: TerrainGrid): Float32Array {
 const NEAR_STEPS = 4;
 
 // Tangent of the terrain horizon each cell sees looking along azimuth `az` (degrees), over the
-// curved surface; -Infinity where nothing inside the grid lies that way.
+// curved surface, from `eyeM` above the ground; -Infinity where nothing inside the grid lies that
+// way.
 //
 // Near field: each cell marches its own ray for NEAR_STEPS steps.
 // Far field: the grid is cut into lines parallel to `az`, one step along the longer axis at a time
@@ -113,7 +114,7 @@ const NEAR_STEPS = 4;
 // Curvature: a point d metres ahead sits d²/2R lower. With heights recast as h - x²/2R (x along
 // the line), slopes on the recast profile are the true ones minus x0/R, a constant per cell, so
 // the hull works on the recast heights and x0/R is added back.
-function horizonTangent(grid: TerrainGrid, az: number): Float32Array {
+function horizonTangent(grid: TerrainGrid, az: number, eyeM: number): Float32Array {
   const { size: n, spacingM: s, heights: h } = grid;
   const dCol = Math.sin(az * RAD); // toward `az`, in cells
   const dRow = -Math.cos(az * RAD);
@@ -157,7 +158,7 @@ function horizonTangent(grid: TerrainGrid, az: number): Float32Array {
       const cross = c + shift[q];
       if (cross < 0 || cross >= n) continue;
       const k = base[q] + cross * crossStride;
-      const h0 = h[k];
+      const h0 = h[k] + eyeM;
       let best = -Infinity;
 
       // Near field: this cell's own ray.
@@ -188,27 +189,74 @@ function horizonTangent(grid: TerrainGrid, az: number): Float32Array {
   return out;
 }
 
-// How much of the Sun's disc each cell sees, 0 to 1, for a Sun at `az` / `el` (degrees) as seen
-// from the site at the centre of the grid. Each cell looks along the Sun's azimuth over the curved
-// surface for the highest terrain in the way. Only terrain inside the grid can cast a shadow.
-// A few ms for the 241 x 241 grid at any Sun elevation, so it can follow the scrubber.
-export function sunlight(grid: TerrainGrid, az: number, el: number): Float32Array {
+// Terrain horizon elevation in degrees each cell sees looking along azimuth `az`, over the curved
+
+export function horizonToward(grid: TerrainGrid, az: number, eyeM = 0): Float32Array {
+  const tan = horizonTangent(grid, az, eyeM);
+  for (let k = 0; k < tan.length; k++) tan[k] = tan[k] === -Infinity ? -90 : Math.atan(tan[k]) / RAD;
+  return tan;
+}
+
+// Clearance in degrees of a distant body (Sun or Earth, at `az` / `el` as seen from the site at
+// the centre of the grid) above each cell's horizon, seen from `eyeM` above the ground. The body
+// stands a little higher for cells nearer to it than the site and lower for those further away,
+// because the ground tilts with the Moon's curvature.
+function clearance(grid: TerrainGrid, az: number, el: number, eyeM: number): Float32Array {
   const n = grid.size, s = grid.spacingM;
-  const tan = horizonTangent(grid, az);
+  const out = horizonToward(grid, az, eyeM);
   const dCol = Math.sin(az * RAD), dRow = -Math.cos(az * RAD);
   const centre = (n - 1) / 2;
-  const lit = new Float32Array(n * n);
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      // The Sun stands a little higher for cells nearer to it than the site, lower for those further away.
-      const towardSunM = ((j - centre) * dCol - (i - centre) * dRow) * s;
-      const elHere = el + (towardSunM / MOON_RADIUS_M) / RAD;
-      const t = tan[i * n + j];
-      const horizonDeg = t === -Infinity ? -90 : Math.atan(t) / RAD;
-      lit[i * n + j] = Math.min(1, Math.max(0, (elHere - horizonDeg) / (2 * SUN_RADIUS_DEG) + 0.5));
+      const towardM = ((j - centre) * dCol - (i - centre) * dRow) * s;
+      out[i * n + j] = el + (towardM / MOON_RADIUS_M) / RAD - out[i * n + j];
     }
   }
+  return out;
+}
+
+// How much of the Sun's disc each cell sees, 0 to 1, for a Sun at `az` / `el` (degrees) as seen
+// from the site at the centre of the grid, from `eyeM` above the ground (0, the ground itself, for
+// the map's shadows). Only terrain inside the grid can cast a shadow.
+// About 12-15 ms for the 241 x 241 grid at any Sun elevation, so it can follow the scrubber.
+export function sunlight(grid: TerrainGrid, az: number, el: number, eyeM = 0): Float32Array {
+  const lit = clearance(grid, az, el, eyeM);
+  for (let k = 0; k < lit.length; k++) lit[k] = Math.min(1, Math.max(0, lit[k] / (2 * SUN_RADIUS_DEG) + 0.5));
   return lit;
+}
+
+// Earth clearance below which the link counts as marginal (scope.md > Core 4; the backend's
+// MARGINAL_COMMS_CLEARANCE_RADIANS).
+export const MARGINAL_COMMS_DEG = 0.5;
+
+// Earth link quality per cell, 0 to 1, for the Earth at `az` / `el` (degrees) as seen from the
+// site, from `eyeM` above the ground: 0 is blocked (Earth's centre below the horizon), 1 is clear
+// (MARGINAL_COMMS_DEG or more above it), and the marginal band in between ramps linearly, so a
+// link that is getting worse shows before it drops.
+export function earthLink(grid: TerrainGrid, az: number, el: number, eyeM = 0): Float32Array {
+  const link = clearance(grid, az, el, eyeM);
+  for (let k = 0; k < link.length; k++) link[k] = Math.min(1, Math.max(0, link[k] / MARGINAL_COMMS_DEG));
+  return link;
+}
+
+// Height of the rover's panel and antenna above the ground, the same as the observer height POST
+// /analyze uses (backend MAST_M, returned as site.mastM). Close-in terrain is very sensitive to it:
+// 2 m against a cell 100 m away is over a degree.
+export const MAST_M = 2;
+
+// Per-cell power for a rover standing on each cell, 0 to 1: the share of the Sun's disc it sees,
+// less what the Earth covers during a lunar eclipse (`behindEarth`, from POST /analyze, the same
+// for the whole grid). The panel's cos(el) and constants are left out: they are the same for every
+// cell.
+export function powerField(grid: TerrainGrid, sun: { az: number; el: number }, behindEarth = 0, eyeM = MAST_M): Float32Array {
+  const lit = sunlight(grid, sun.az, sun.el, eyeM);
+  if (behindEarth > 0) for (let k = 0; k < lit.length; k++) lit[k] *= 1 - behindEarth;
+  return lit;
+}
+
+// Per-cell comms for a rover standing on each cell, 0 to 1 (see earthLink).
+export function commsField(grid: TerrainGrid, earth: { az: number; el: number }, eyeM = MAST_M): Float32Array {
+  return earthLink(grid, earth.az, earth.el, eyeM);
 }
 
 // Colour ramps, dark end then bright end, as [r, g, b].
