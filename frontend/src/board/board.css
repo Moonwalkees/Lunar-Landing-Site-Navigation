@@ -267,6 +267,17 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .u3d .terrain-stage canvas.terrain-map { cursor: grab; }
 .u3d .terrain-stage canvas.terrain-map:active { cursor: grabbing; }
 .u3d .terrain-readout { position: absolute; top: 8px; right: 8px; pointer-events: none; font: 400 11px var(--font-mono); letter-spacing: .08em; color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); padding: 2px 6px; }
+.u3d .terrain-legend { position: absolute; right: 8px; bottom: 8px; width: 230px; max-width: calc(100% - 16px); pointer-events: none; font: 400 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); padding: 6px 8px; }
+.u3d .terrain-legend-row { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 6px; margin-top: 4px; }
+.u3d .terrain-legend-bar { height: 8px; }
+.u3d .terrain-legend-ends { margin-top: 2px; color: var(--ash); }
+.u3d .terrain-legend-ends > div { display: flex; justify-content: space-between; }
+.u3d .terrain-legend-note { margin-top: 4px; color: var(--ash); }
+.u3d .terrain-legend-here { margin-top: 4px; color: var(--regolith); }
+.u3d .actions.forecast-controls { align-items: center; }
+.u3d .actions.forecast-controls button { font-size: 15px; min-height: 32px; padding: 0 10px; }
+.u3d .forecast-label { font: 400 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); margin-left: 8px; }
+.u3d .forecast-label:first-child { margin-left: 0; }
 .u3d .terrain-hint { margin: 0; font: 400 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
 
 @media (prefers-reduced-motion: reduce) { .alert { animation: none; } html, body, .console, .dock, body::before { transition: none; } html.los body::before { animation: none; } }
