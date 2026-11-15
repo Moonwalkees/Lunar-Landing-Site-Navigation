@@ -26,6 +26,14 @@ export const ROVER_PRESETS: (RoverSpec & { source: string })[] = [
 
 export const DEFAULT_ROVER: RoverSpec = ROVER_PRESETS[0];
 
+// The name to show for the numbers an analysis used: the preset they match, or Custom.
+// The backend leaves the name out, so it is worked out from the three numbers.
+export function roverName(spec: Omit<RoverSpec, "name"> | undefined): string {
+  if (!spec) return DEFAULT_ROVER.name; // an older backend, which always used VIPER
+  const p = ROVER_PRESETS.find((r) => r.solarW === spec.solarW && r.batteryWh === spec.batteryWh && r.loadW === spec.loadW);
+  return p ? p.name : "Custom rover";
+}
+
 // The allowed range of each number (the backend checks the same), and what to say outside it.
 export const ROVER_RULES: Record<"solarW" | "batteryWh" | "loadW", { ok: (n: number) => boolean; message: string }> = {
   solarW: { ok: (n) => n > 0 && n <= 100_000, message: "Solar power must be more than 0 W." },

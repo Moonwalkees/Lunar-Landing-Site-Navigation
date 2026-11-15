@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { roverAt, roverCapacity, sunShare, type RoverKind } from "../rover";
+import { roverName } from "../rovers";
 import type { Analysis } from "../types";
 
 interface Props {
@@ -22,7 +23,7 @@ export default function RoverStatus({ analysis, index }: Props) {
   return (
     <div className="rover-status" role="status">
       <div className="rover-head">
-        <span className="rover-title">ROVER AT SITE</span>
+        <span className="rover-title">{roverName(analysis.rover).toUpperCase()} AT SITE</span>
         <span className="rover-state" style={{ color: colour }}>{now.state}</span>
       </div>
       <div className="rover-grid">

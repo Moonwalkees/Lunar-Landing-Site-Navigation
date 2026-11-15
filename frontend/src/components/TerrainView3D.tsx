@@ -18,6 +18,8 @@ interface Props {
   view: View3D;
   // The panel's view buttons (bird's-eye, orbit, surface).
   viewButtons: ReactNode;
+  // Each change turns the camera toward the Sun, keeping the zoom (to show an eclipse).
+  lookSun?: number;
 }
 
 export type View3D = "orbit" | "surface";
@@ -55,7 +57,7 @@ function loadUnityLoader(): Promise<void> {
 
 // The 3D half of the terrain panel (TerrainView): the real terrain around the site, with the Sun casting shadows and the Earth
 // in the sky. It only displays the angles it is given; it never computes them.
-export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons }: Props) {
+export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons, lookSun }: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const unity = useRef<UnityInstance | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
@@ -139,6 +141,14 @@ export default function TerrainView3D({ lat, lon, sun, earth, view, viewButtons 
     }
     unity.current.SendMessage("Bridge", "SetState", JSON.stringify(message));
   }, [status, tile, lat, lon, sunAz, sunEl, earthAz, earthEl, view]);
+
+  // Turn the camera toward the Sun when asked. Declared after the effect above, and sent a moment
+  // later, so Unity already has the Sun where it is at the new time.
+  useEffect(() => {
+    if (!lookSun || status !== "ready" || !unity.current) return;
+    const t = setTimeout(() => unity.current?.SendMessage("Bridge", "LookTowardSun", ""), 50);
+    return () => clearTimeout(t);
+  }, [lookSun, status]);
 
   return (
     <>

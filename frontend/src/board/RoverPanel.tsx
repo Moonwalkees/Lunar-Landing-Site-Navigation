@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { roverAt, roverCapacity, sunShare } from "../rover";
+import { roverName } from "../rovers";
 import type { Analysis } from "../types";
 
 interface Props {
@@ -23,7 +24,9 @@ export default function RoverPanel({ analysis, index, low }: Props) {
 
   return (
     <div className={"rover-panel " + now.kind + (low ? " low" : "")} role="status">
-      <div className="mono">Rover at site</div>
+      <div className="mono" title={analysis.rover ? `${analysis.rover.solarW} W solar · ${analysis.rover.batteryWh} Wh battery · uses ${analysis.rover.loadW} W` : undefined}>
+        {roverName(analysis.rover)} at site
+      </div>
       <div className="word">{now.state}</div>
       <div className="rk">
         <div><span className="mono">Sun</span><b className={now.sun > 0 ? "s" : "off"}>{share.toUpperCase()}</b></div>
