@@ -48,8 +48,10 @@ KERNELS = [
 def download(url: str, dest: Path) -> None:
     """Download url to dest via a .part file, renamed only once complete."""
     part = dest.with_name(dest.name + ".part")
+    # Cloudflare (R2 public buckets) answers 403 to Python's default "Python-urllib" User-Agent.
+    request = urllib.request.Request(url, headers={"User-Agent": "lunar-fetch-data/1.0"})
     try:
-        with urllib.request.urlopen(url, timeout=60) as resp, open(part, "wb") as out:
+        with urllib.request.urlopen(request, timeout=60) as resp, open(part, "wb") as out:
             shutil.copyfileobj(resp, out)
         part.replace(dest)
     finally:
