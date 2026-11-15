@@ -101,6 +101,16 @@ a.cbtn { display: inline-flex; align-items: center; justify-content: center; tex
 .mcard-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .mcard-btns .cbtn { white-space: nowrap; }
 @media (max-width: 640px) { .mcard-btns { grid-template-columns: 1fr 1fr; } .mcard-btns .cbtn:last-child { grid-column: 1 / -1; } }
+/* Console fold (BoardApp.tsx): phones only. Folded, the console is just the site name and SHOW. */
+.console-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.console-top .nm { min-width: 0; }
+.console-fold { display: none; }
+@media (max-width: 640px) {
+  .console-fold { display: block; flex: none; min-width: 72px; }
+  .console.min .coord, .console.min .kv, .console.min .console-btns { display: none; }
+  .console.min .console-top { align-items: center; }
+  .console.min .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
 @media (max-width: 640px) {
   .console { left: var(--gutter-l); right: var(--gutter-r); width: auto; bottom: 10px; padding: 10px 12px; }
   .console .nm { font-size: 22px; } .kv b { font-size: 22px; }
