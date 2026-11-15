@@ -42,12 +42,16 @@ export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, 
   const [view, setView] = useState<View>(has3D ? "orbit" : "birdseye");
 
   // Eclipses in the window: a badge while one is under way, and a button that moves the time to
-  // the next one's peak. The view and camera stay as they are (ticket 7.4).
+  // the next one's peak and, in 3D, turns the camera toward the Sun. The view (orbit or surface)
+  // and the zoom stay as they are (ticket 7.4).
   const list = useMemo(() => (analysis ? eclipses(analysis) : []), [analysis]);
   const now = eclipseAt(list, index);
   const next = nextEclipse(list, index);
+  const [lookSun, setLookSun] = useState(0);
   const goToEclipse = () => {
-    if (next) onScrub(next.peak);
+    if (!next) return;
+    onScrub(next.peak);
+    if (view !== "birdseye") setLookSun((n) => n + 1);
   };
 
   useEffect(() => {
@@ -92,7 +96,7 @@ export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, 
           <TerrainMap lat={lat} lon={lon} sun={sun} earth={earth} viewButtons={<>{viewButtons}{eclipseButton}</>} />
         ) : (
           <Suspense fallback={<div className="terrain-stage"><div className="terrain-note">Loading 3D view…</div></div>}>
-            <TerrainView3D lat={lat} lon={lon} sun={sun} earth={earth} view={view} viewButtons={<>{viewButtons}{eclipseButton}</>} />
+            <TerrainView3D lat={lat} lon={lon} sun={sun} earth={earth} view={view} viewButtons={<>{viewButtons}{eclipseButton}</>} lookSun={lookSun} />
           </Suspense>
         )}
       </div>
