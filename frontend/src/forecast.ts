@@ -11,11 +11,13 @@ export type { ForecastBody };
 // Arrays hold one value per grid cell, row by row from the north edge.
 export interface Forecast {
   body: ForecastBody;
+  early: boolean; // early-warning field (see marginField) in place of power / comms
   index: number;
   steps: number; // k, or fewer at the end of the window
   hours: number;
   now: Float32Array; // 0 to 1
   delta: Float32Array; // V(index + steps) - now
+  deltaAt: Uint8Array; // steps after index by which half of that change has happened
   dip: Float32Array; // min over the span - now, always <= 0
   dipAt: Uint8Array; // steps after index at which the minimum falls
 }
@@ -35,6 +37,7 @@ export function useForecast(
   index: number,
   k: number,
   body: ForecastBody | null,
+  early = false,
 ): ForecastState {
   const [state, setState] = useState<ForecastState>(IDLE);
   const worker = useRef<Worker | null>(null);
@@ -92,10 +95,10 @@ export function useForecast(
   // Must stay after the setup effect: on a new site the worker needs the setup first.
   useEffect(() => {
     if (!active || !worker.current) return;
-    const message: RequestMessage = { type: "request", id: ++latest.current, body, i: index, k };
+    const message: RequestMessage = { type: "request", id: ++latest.current, body, i: index, k, early };
     worker.current.postMessage(message);
     setState((s) => (s.pending ? s : { ...s, pending: true }));
-  }, [active, grid, analysis, index, k, body]);
+  }, [active, grid, analysis, index, k, body, early]);
 
   return state;
 }

@@ -254,6 +254,15 @@ export function powerField(grid: TerrainGrid, sun: { az: number; el: number }, b
   return lit;
 }
 
+// Early-warning field, 0 to 1: how far the body (Sun or Earth) stands above each cell's horizon,
+// as 0.5 + clearance / (2 * bandDeg), clamped. 0.5 is the body on the horizon; 0 and 1 are bandDeg
+// below and above it. A wide band shows ground heading toward shadow before it gets there.
+export function marginField(grid: TerrainGrid, body: { az: number; el: number }, bandDeg: number, eyeM = MAST_M): Float32Array {
+  const out = clearance(grid, body.az, body.el, eyeM);
+  for (let k = 0; k < out.length; k++) out[k] = Math.min(1, Math.max(0, 0.5 + out[k] / (2 * bandDeg)));
+  return out;
+}
+
 // Per-cell comms for a rover standing on each cell, 0 to 1 (see earthLink).
 export function commsField(grid: TerrainGrid, earth: { az: number; el: number }, eyeM = MAST_M): Float32Array {
   return earthLink(grid, earth.az, earth.el, eyeM);
@@ -326,9 +335,12 @@ export function paint(shade: Float32Array, ao: Float32Array, lit: Float32Array |
 }
 
 // Forecast overlay colours (ticket 7.8): a diverging pair, checked for colour-blind separation.
-// No change is transparent, so the terrain itself is the neutral midpoint.
-export const DELTA_LOSS = [240, 89, 94]; // #f0595e
-export const DELTA_GAIN = [51, 136, 238]; // #3388ee
+// Each side runs from a vivid shade (the change comes soon) to a pale one (it comes late in the
+// span). No change is transparent, so the terrain itself is the neutral midpoint.
+export const DELTA_LOSS = [226, 58, 65]; // #e23a41, soon
+export const DELTA_LOSS_LATE = [240, 143, 139]; // #f08f8b
+export const DELTA_GAIN = [34, 113, 224]; // #2271e0, soon
+export const DELTA_GAIN_LATE = [136, 182, 240]; // #88b6f0
 export const DELTA_DEADBAND = 0.02; // |Δ| at or below this stays clear, so noise doesn't tint the map
 
 // Overlay strength, 0 to 1, for a change `d` in -1..1: 0 inside the dead-band, a short fade-in so
@@ -340,26 +352,44 @@ export function deltaAlpha(d: number): number {
   return fade * (0.35 + 0.65 * Math.min(1, a));
 }
 
-// The map image with a change field (-1 to 1 per grid cell) blended over it: DELTA_LOSS where the
-// value falls, DELTA_GAIN where it rises. The base is first turned grey, so colour only ever means
-// change and the map's own warm / blue tints can't be mistaken for it. Returns a new image.
-export function paintDelta(base: ImageData, delta: Float32Array, opacity = 0.8): ImageData {
+// Overlay colour for a loss or a gain that comes `late` of the way through the span (0 = now,
+// 1 = at the very end).
+export function deltaColour(loss: boolean, late: number): [number, number, number] {
+  const a = loss ? DELTA_LOSS : DELTA_GAIN, b = loss ? DELTA_LOSS_LATE : DELTA_GAIN_LATE;
+  const t = Math.min(1, Math.max(0, late));
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+// The map image with a change field (-1 to 1 per grid cell) blended over it: red where the value
+// falls, blue where it rises. The base is first turned grey, so colour only ever means change.
+// `when` (steps after now at which each cell changes) and `span` (steps in the window) shade the
+// colour from vivid for soon to pale for late; without them every change is the vivid shade.
+// Returns a new image.
+export function paintDelta(base: ImageData, delta: Float32Array, opacity = 0.8, when?: Uint8Array, span = 0): ImageData {
   const n = Math.round(Math.sqrt(delta.length));
   const m = base.width;
   const out = new ImageData(m, m);
   const src = base.data, px = out.data;
   const { cell, frac } = upsampleAxis(n);
+  const timed = when !== undefined && span > 0;
   let o = 0;
   for (let y = 0; y < m; y++) {
     const row = cell[y] * n, fy = frac[y];
     for (let x = 0; x < m; x++) {
       const k = row + cell[x], fx = frac[x];
-      const d =
-        (delta[k] * (1 - fx) + delta[k + 1] * fx) * (1 - fy) +
-        (delta[k + n] * (1 - fx) + delta[k + n + 1] * fx) * fy;
+      const w00 = (1 - fx) * (1 - fy), w01 = fx * (1 - fy), w10 = (1 - fx) * fy, w11 = fx * fy;
+      const d00 = delta[k], d01 = delta[k + 1], d10 = delta[k + n], d11 = delta[k + n + 1];
+      const d = d00 * w00 + d01 * w01 + d10 * w10 + d11 * w11;
+      let late = 0;
+      if (timed) {
+        // Average the timing over the neighbours that change, weighted by how much they change.
+        const a00 = Math.abs(d00) * w00, a01 = Math.abs(d01) * w01, a10 = Math.abs(d10) * w10, a11 = Math.abs(d11) * w11;
+        const total = a00 + a01 + a10 + a11;
+        if (total > 0) late = (when[k] * a00 + when[k + 1] * a01 + when[k + n] * a10 + when[k + n + 1] * a11) / (total * span);
+      }
       const grey = 0.299 * src[o] + 0.587 * src[o + 1] + 0.114 * src[o + 2];
       const a = opacity * deltaAlpha(d);
-      const c = d < 0 ? DELTA_LOSS : DELTA_GAIN;
+      const c = deltaColour(d < 0, late);
       px[o] = grey + (c[0] - grey) * a;
       px[o + 1] = grey + (c[1] - grey) * a;
       px[o + 2] = grey + (c[2] - grey) * a;

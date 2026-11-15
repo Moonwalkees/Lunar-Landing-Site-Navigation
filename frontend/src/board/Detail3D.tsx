@@ -89,7 +89,7 @@ export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, 
           </div>
         )}
         {view === "birdseye" ? (
-          <TerrainMap lat={lat} lon={lon} sun={sun} earth={earth} viewButtons={<>{viewButtons}{eclipseButton}</>} />
+          <TerrainMap lat={lat} lon={lon} sun={sun} earth={earth} analysis={analysis} index={index} viewButtons={<>{viewButtons}{eclipseButton}</>} />
         ) : (
           <Suspense fallback={<div className="terrain-stage"><div className="terrain-note">Loading 3D view…</div></div>}>
             <TerrainView3D lat={lat} lon={lon} sun={sun} earth={earth} view={view} viewButtons={<>{viewButtons}{eclipseButton}</>} />

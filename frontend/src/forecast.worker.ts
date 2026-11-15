@@ -1,6 +1,6 @@
 // Web Worker for the forecast overlay (ticket 7.7). Driven by useForecast() in forecast.ts.
 
-import { combine, FrameCache, forecastSteps, type ForecastBody, type ForecastGrid, type ForecastTracks } from "./forecastCore";
+import { combine, FrameCache, forecastSteps, sampleSteps, type ForecastBody, type ForecastGrid, type ForecastTracks } from "./forecastCore";
 
 export interface SetupMessage {
   type: "setup";
@@ -14,15 +14,18 @@ export interface RequestMessage {
   body: ForecastBody;
   i: number;
   k: number;
+  early: boolean;
 }
 
 export interface ReplyMessage {
   id: number;
   body: ForecastBody;
+  early: boolean;
   i: number;
   steps: number;
   now: Float32Array;
   delta: Float32Array;
+  deltaAt: Uint8Array;
   dip: Float32Array;
   dipAt: Uint8Array;
 }
@@ -51,11 +54,12 @@ async function run() {
   while (wanted && cache) {
     const request = wanted, frames = cache, setup = setupCount;
     const steps = forecastSteps(request.i, request.k, stepCount);
+    const at = sampleSteps(request.i, steps);
     const window: Float32Array[] = [];
     let stale = false;
-    for (let s = 0; s <= steps; s++) {
-      const fresh = !frames.has(request.body, request.i + s);
-      window.push(frames.frame(request.body, request.i + s));
+    for (const t of at) {
+      const fresh = !frames.has(request.body, t, request.early);
+      window.push(frames.frame(request.body, t, request.early));
       if (!fresh) continue;
       // After each new frame (~13 ms), drop this request if a newer one has arrived.
       await breathe();
@@ -63,10 +67,10 @@ async function run() {
     }
     if (stale) continue;
     wanted = null;
-    const out = combine(window);
+    const out = combine(window, at.map((t) => t - request.i));
     scope.postMessage(
-      { id: request.id, body: request.body, i: request.i, steps, ...out },
-      [out.now.buffer, out.delta.buffer, out.dip.buffer, out.dipAt.buffer],
+      { id: request.id, body: request.body, early: request.early, i: request.i, steps, ...out },
+      [out.now.buffer, out.delta.buffer, out.deltaAt.buffer, out.dip.buffer, out.dipAt.buffer],
     );
   }
   running = false;

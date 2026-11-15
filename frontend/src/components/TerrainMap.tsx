@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getTerrain } from "../api/client";
-import { occlusion, paint, relief, sunlight } from "../terrain2d";
-import type { TerrainGrid } from "../types";
+import { useForecast, type ForecastBody } from "../forecast";
+import { EARLY_BAND_DEG } from "../forecastCore";
+import { occlusion, paint, paintDelta, relief, sunlight } from "../terrain2d";
+import type { Analysis, TerrainGrid } from "../types";
+import ForecastLegend, { type ForecastMode } from "./ForecastLegend";
 import type { SkyPosition } from "./TerrainView3D";
 
 interface Props {
@@ -11,7 +14,15 @@ interface Props {
   earth: SkyPosition | null;
   // The panel's view buttons (bird's-eye, orbit, surface).
   viewButtons: ReactNode;
+  // For the forecast overlay (ticket 7.9). Without them the overlay controls are off.
+  analysis?: Analysis | null;
+  index?: number;
 }
+
+// Look-ahead choices in time steps: 3, 6 and 12 steps, then 1, 3 and 7 days.
+const horizons = (stepHours: number) =>
+  [...new Set([3, 6, 12, ...[24, 72, 168].map((h) => Math.round(h / stepHours))])].filter((k) => k <= 255).sort((a, b) => a - b);
+const hoursLabel = (h: number) => (h >= 48 ? `${+(h / 24).toFixed(1)} d` : `${+h.toFixed(1)} h`);
 
 // Same colours as the panorama and time series.
 const SUN = "#c08a1c";
@@ -30,13 +41,17 @@ interface ViewBox {
 
 // Top-down map of the terrain around the site, with shadows for the current Sun and arrows
 // toward the Sun and the Earth. Like the 3D view it only displays the angles it is given.
-export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props) {
+export default function TerrainMap({ lat, lon, sun, earth, viewButtons, analysis = null, index = 0 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [grid, setGrid] = useState<TerrainGrid | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<ViewBox | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [hover, setHover] = useState<{ col: number; row: number } | null>(null);
+  const [layer, setLayer] = useState<ForecastBody | null>(null);
+  const [mode, setMode] = useState<ForecastMode>("delta");
+  const [ahead, setAhead] = useState(6);
+  const [early, setEarly] = useState(false);
 
   // Fetch the grid. The site form changes on every keystroke, so wait until typing pauses.
   useEffect(() => {
@@ -76,18 +91,34 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
   useEffect(() => setBox(null), [grid]);
 
   const ao = useMemo(() => (grid ? occlusion(grid) : null), [grid]);
-  const sunAz = sun?.az, sunEl = sun?.el;
-  const image = useMemo(() => {
+  // With the forecast on, the map is plain relief with no shadows, so the only shading is the change.
+  const forecasting = layer !== null;
+  const sunAz = forecasting ? undefined : sun?.az, sunEl = forecasting ? undefined : sun?.el;
+  const pixels = useMemo(() => {
     if (!grid || !ao) return null;
     const known = sunAz !== undefined && sunEl !== undefined;
     const shade = relief(grid, known ? sunAz : undefined);
     const lit = known ? sunlight(grid, sunAz, sunEl) : null;
-    const pixels = paint(shade, ao, lit);
+    return paint(shade, ao, lit);
+  }, [grid, ao, sunAz, sunEl]);
+
+  // Forecast overlay. The grid lags the site while typing, so only use it once the grid and the
+  // analysis are both for this site.
+  const matched = grid && analysis && grid.lat === lat && grid.lon === lon
+    && analysis.site.lat === lat && analysis.site.lon === lon;
+  const { forecast, failed } = useForecast(matched ? grid : null, matched ? analysis : null, index, ahead, layer, early);
+  const shown = forecast && grid && forecast.body === layer && forecast.early === early && forecast.now.length === grid.size * grid.size ? forecast : null;
+  const field = shown ? (mode === "dip" ? shown.dip : shown.delta) : null;
+  const fieldAt = shown ? (mode === "dip" ? shown.dipAt : shown.deltaAt) : undefined;
+  const span = shown?.steps ?? 0;
+
+  const image = useMemo(() => {
+    if (!pixels) return null;
     const offscreen = document.createElement("canvas");
     offscreen.width = offscreen.height = pixels.width;
-    offscreen.getContext("2d")!.putImageData(pixels, 0, 0);
+    offscreen.getContext("2d")!.putImageData(field ? paintDelta(pixels, field, undefined, fieldAt, span) : pixels, 0, 0);
     return offscreen;
-  }, [grid, ao, sunAz, sunEl]);
+  }, [pixels, field, fieldAt, span]);
 
   // Follow the panel's size. The canvas fills its stage, so its bitmap has to match the stage's
   // real width and height, or the browser stretches the map (BUG-009).
@@ -295,6 +326,7 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
 
   // What is under the pointer: distance and direction from the site, and the height.
   let readout: string | null = null;
+  let forecastHere: string | null = null;
   if (grid && hover) {
     const c = Math.round(hover.col), r = Math.round(hover.row);
     if (c >= 0 && c < n && r >= 0 && r < n) {
@@ -303,8 +335,26 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
       const distance = Math.hypot(east, north) / 1000;
       const bearing = ((Math.atan2(east, north) * 180) / Math.PI + 360) % 360;
       readout = `${distance.toFixed(1)} km at ${bearing.toFixed(0)}° · height ${grid.heights[r * n + c]} m`;
+      if (shown && analysis) {
+        const k = r * n + c, now = shown.now[k], then = now + shown.delta[k], low = now + shown.dip[k];
+        // Early warning values are clearance above the horizon: 0.5 + degrees / (2 * band).
+        const show = (v: number) => {
+          if (!shown.early) return v.toFixed(2);
+          const deg = (v - 0.5) * 2 * EARLY_BAND_DEG;
+          return v >= 0.999 ? `above +${EARLY_BAND_DEG}°` : v <= 0.001 ? `below −${EARLY_BAND_DEG}°` : (deg >= 0 ? "+" : "−") + Math.abs(deg).toFixed(1) + "°";
+        };
+        forecastHere = `Here ${show(now)} → ${show(then)}`;
+        if (Math.abs(shown.delta[k]) > 0.02) forecastHere += ` · changes at +${hoursLabel(shown.deltaAt[k] * analysis.stepHours)}`;
+        // Only worth saying when it falls further on the way than it ends up.
+        if (low < Math.min(now, then) - 0.02) {
+          forecastHere += ` · dips to ${show(Math.max(0, low))} at +${hoursLabel(shown.dipAt[k] * analysis.stepHours)}`;
+        }
+      }
     }
   }
+
+  const canForecast = !!matched;
+  const pick = (on: boolean) => ({ className: on ? "" : "secondary", "aria-pressed": on });
 
   return (
     <>
@@ -322,10 +372,47 @@ export default function TerrainMap({ lat, lon, sun, earth, viewButtons }: Props)
         {!grid && !error && <div className="terrain-note">Loading terrain…</div>}
         {error && <div className="terrain-note">{error}</div>}
         {readout && <div className="terrain-readout">{readout}</div>}
+        {layer && shown && (
+          <ForecastLegend body={layer} mode={mode} hours={shown.hours} cut={shown.steps < ahead} here={forecastHere}
+            earlyBandDeg={early ? EARLY_BAND_DEG : undefined} />
+        )}
+        {layer && !shown && <div className="terrain-legend">{failed ? "Forecast could not run in this browser." : canForecast ? "Working out the forecast…" : "Forecast needs an analysis for this site."}</div>}
       </div>
       <div className="actions">{viewButtons}</div>
+      <div className="actions forecast-controls">
+        <span className="forecast-label">Forecast</span>
+        <button {...pick(layer === null)} onClick={() => setLayer(null)}>Off</button>
+        <button {...pick(layer === "power")} disabled={!canForecast} onClick={() => setLayer("power")}
+          title={canForecast ? "Where sunlight on the rover will rise or fall. Only terrain inside this 24 km map is counted." : "Needs an analysis for this site."}>
+          Power
+        </button>
+        <button {...pick(layer === "comms")} disabled={!canForecast} onClick={() => setLayer("comms")}
+          title={canForecast ? "Where the Earth link will improve or weaken. Only terrain inside this 24 km map is counted." : "Needs an analysis for this site."}>
+          Comms
+        </button>
+        {layer && analysis && (
+          <>
+            <span className="forecast-label">Show</span>
+            <button {...pick(mode === "delta")} onClick={() => setMode("delta")} title="The value at the end of the span, less the value now.">Change</button>
+            <button {...pick(mode === "dip")} onClick={() => setMode("dip")} title="The lowest value during the span, less the value now. Catches short drops that recover.">Worst dip</button>
+            <button {...pick(early)} onClick={() => setEarly(!early)}
+              title={`Also colours ground where the ${layer === "power" ? "Sun" : "Earth"} is within ${EARLY_BAND_DEG}° of the horizon and moving toward or away from it, before the ${layer === "power" ? "light" : "link"} actually changes.`}>
+              Early warning
+            </button>
+            <span className="forecast-label">Ahead</span>
+            {horizons(analysis.stepHours).map((k) => (
+              <button key={k} {...pick(ahead === k)} onClick={() => setAhead(k)} title={`${k} time steps`}>
+                {hoursLabel(k * analysis.stepHours)}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
       <p className="muted terrain-hint">
-        Drag to pan, scroll to zoom, double-click to reset. Darker ground is out of the Sun.
+        Drag to pan, scroll to zoom, double-click to reset.
+        {layer
+          ? " Forecast on: shadows are hidden. Red ground is about to lose " + (layer === "power" ? "sunlight" : "the Earth link") + ", blue ground is about to gain it."
+          : " Darker ground is out of the Sun."}
         {grid && ` 24 km square, heights every ${grid.spacingM} m from the ${grid.sourceM < 100 ? "20 m polar" : "474 m global"} map.`}
         {grid && grid.sourceM >= 100 && " Coarse here, so small craters won't show."}
         {(!sun || !earth) && " Press Analyze to see the Sun, the Earth and the shadows."}
