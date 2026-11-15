@@ -1,5 +1,4 @@
 import qrcode from "qrcode-generator";
-import { eclipseAt, eclipses, nextEclipse, pctCovered } from "../eclipses";
 import { roverName } from "../rovers";
 import { relief, sunlight } from "../terrain2d";
 import type { Analysis, TerrainGrid } from "../types";
@@ -58,8 +57,7 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
   const size = fitSize(g, main, 900, 96, 56, INNER);
   text(g, clip(g, main, INNER), M, y, `900 ${size}px ${DOT}`, "--selected");
   y += size + 20;
-  const region = d.lat <= -80 ? "South pole" : d.lat >= 80 ? "North pole" : null;
-  const where = [`Lat ${d.lat.toFixed(3)}°`, `Lon ${d.lon.toFixed(3)}°E`, region, qual?.replace(/\n/g, ", ")].filter(Boolean).join(" · ");
+  const where = [`Lat ${d.lat.toFixed(3)}°`, `Lon ${d.lon.toFixed(3)}°E`, qual?.split("\n")[0]].filter(Boolean).join(" · ");
   caption(g, where, M, y, "--regolith", "left", 22);
   y += 22 + 36;
 
@@ -67,49 +65,33 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
   const TS = 640;
   terrain(g, d.grid, sun, earth, M, y, TS);
   readouts(g, a, M + TS + 56, y);
-  y += TS + 20;
-  caption(g, `Sun az ${sun.az.toFixed(1)}° el ${signed(sun.el)} · Earth az ${earth.az.toFixed(1)}° el ${signed(earth.el)}`, M, y, "--ash", "left", 18);
-  y += 18 + 22;
+  y += TS + 24;
   const state = stateAt(a, i);
   const atW = caption(g, `At ${stamp(a.times[i])} UTC`, M, y + 6);
   text(g, STATE_LABEL[state], M + atW + 20, y, `800 30px ${DOT}`, STATE_COLOR[state]);
   y += 30 + 36;
 
-  // ---- Sun / Earth / both over the window ----
+  // ---- Sun / Earth / both / battery over the window ----
   y = strip(g, a, i, M, y, INNER) + 36;
 
-  // ---- mission survival (scope.md Core 5): does the battery last through every dark spell? ----
+  // ---- mission survival (scope.md Core 5) and the rover ----
   const half = INNER / 2;
-  y = survival(g, a, M, y, half) + 40;
-
-  // ---- rover and eclipse ----
-  caption(g, "Rover", M, y);
-  text(g, roverName(a.rover), M, y + 30, `800 32px ${DOT}`, "--regolith");
-  caption(g, `${n0(a.rover.solarW)} W solar · ${n0(a.rover.batteryWh)} Wh · uses ${n0(a.rover.loadW)} W`, M, y + 74, "--ash", "left", 18);
-  const list = eclipses(a), now = eclipseAt(list, i), next = nextEclipse(list, i);
-  caption(g, now ? "Eclipse now" : "Next eclipse", M + half, y);
-  if (now) {
-    text(g, pctCovered(a.sun.behindEarth[i] ?? 0).toUpperCase() + " OF THE SUN", M + half, y + 30, `800 32px ${DOT}`, "--selected");
-    caption(g, `Peak ${pctCovered(now.covered)} at ${stamp(a.times[now.peak])}`, M + half, y + 74, "--ash", "left", 18);
-  } else if (next) {
-    text(g, stamp(a.times[next.peak]), M + half, y + 30, `800 32px ${DOT}`, "--selected");
-    caption(g, `Up to ${pctCovered(next.covered)} of the Sun behind the Earth`, M + half, y + 74, "--ash", "left", 18);
-  } else {
-    text(g, "NONE IN WINDOW", M + half, y + 30, `800 32px ${DOT}`, "--ash");
-  }
+  survival(g, a, M, y);
+  caption(g, "Rover", M + half, y);
+  text(g, roverName(a.rover), M + half, y + 30, `800 32px ${DOT}`, "--regolith");
+  caption(g, `${n0(a.rover.solarW)} W · ${n0(a.rover.batteryWh)} Wh · ${n0(a.rover.loadW)} W`, M + half, y + 74, "--ash", "left", 18);
   y += 74 + 18 + 40;
 
   // ---- QR code and link ----
   hairline(g, y);
   y += 28;
   const box = qr(g, d.url, CARD_W - M, y, 300);
-  caption(g, "Scan to open this mission", M, box.y);
+  caption(g, "Scan to open", M, box.y);
   let host = d.url;
   try { host = new URL(d.url).host; } catch { /* keep the whole link */ }
   const hostSize = fitSize(g, host, 700, 30, 18, box.x - M - 32);
   text(g, host, M, box.y + 32, `700 ${hostSize}px ${DOT}`, "--regolith");
-  caption(g, "Opens this site, window, rover and time on the board", M, box.y + 32 + hostSize + 14, "--ash", "left", 18);
-  caption(g, "Elevation: NASA LOLA · Sun and Earth: NASA NAIF SPICE", M, box.y + box.size - 16, "--ash", "left", 16);
+  caption(g, "Data: NASA LOLA · NAIF SPICE", M, box.y + box.size - 16, "--ash", "left", 16);
 
   canvas.width = CARD_W;
   canvas.height = Math.ceil(box.y + box.size + M);
@@ -119,27 +101,14 @@ export async function drawMissionCard(canvas: HTMLCanvasElement, d: CardData): P
 // ---------- pieces ----------
 
 // Survival as the backend counts it: the battery never reaches 0 Wh in the window (utils.py).
-// Left: the verdict, and the longest dark against how long a full battery lasts at the rover's
-// load. Right: the lowest charge, or when the battery first runs out and for how much of the window.
-function survival(g: G, a: Analysis, x: number, y: number, half: number): number {
-  const cap = a.rover.batteryWh, load = a.rover.loadW, b = a.batteryWh;
-  const ok = a.metrics.survives ?? b.every((v) => v > 0);
-  const lasts = load > 0 ? `battery lasts ${n0(cap / load)} h` : "no load on the battery";
-  caption(g, "Mission survival", x, y);
-  text(g, ok ? "SURVIVES THE WINDOW" : "BATTERY RUNS OUT", x, y + 30, `800 32px ${DOT}`, ok ? "--ok" : "--selected");
-  caption(g, `Longest dark ${hours(a.metrics.longestNightH).replace("h", " h")} · ${lasts}`, x, y + 74, "--ash", "left", 18);
-  caption(g, "Battery", x + half, y);
-  if (ok) {
-    const min = a.metrics.batteryMinWh ?? Math.min(...b);
-    text(g, `LOWEST ${n0(min)} WH`, x + half, y + 30, `800 32px ${DOT}`, "--regolith");
-    caption(g, `${Math.round((min / cap) * 100)}% of ${n0(cap)} Wh`, x + half, y + 74, "--ash", "left", 18);
-  } else {
-    const first = b.findIndex((v) => v <= 0);
-    const empty = b.filter((v) => v <= 0).length / Math.max(1, b.length);
-    text(g, `EMPTY ${stamp(a.times[first])}`, x + half, y + 30, `800 32px ${DOT}`, "--selected");
-    caption(g, `Empty for ${Math.max(1, Math.round(empty * 100))}% of the window`, x + half, y + 74, "--ash", "left", 18);
-  }
-  return y + 74 + 18;
+// The verdict, then the longest dark against how long a full battery lasts at the rover's load.
+function survival(g: G, a: Analysis, x: number, y: number) {
+  const cap = a.rover.batteryWh, load = a.rover.loadW;
+  const ok = a.metrics.survives ?? a.batteryWh.every((v) => v > 0);
+  caption(g, "Survival", x, y);
+  text(g, ok ? "SURVIVES" : "BATTERY RUNS OUT", x, y + 30, `800 32px ${DOT}`, ok ? "--ok" : "--selected");
+  const dark = a.metrics.longestNightH === null ? "—" : n0(a.metrics.longestNightH);
+  caption(g, `${dark} h dark · ${load > 0 ? n0(cap / load) + " h" : "no drain"} on battery`, x, y + 74, "--ash", "left", 18);
 }
 
 // The terrain seen from above, north up, as round dots: lit by the Sun at this time with the
@@ -236,12 +205,10 @@ function readouts(g: G, a: Analysis, x: number, y: number) {
 
 // Bands of dots across the window, as the board's dot chart: Sun, Earth and both (a column is on
 // when the condition holds for at least half of its steps), then the battery as a level (dots lit
-// from the bottom by the column's mean charge, a --selected dot where it runs empty). Eclipses mark
-// the Sun band in --selected; the card's time is a column of --regolith dots. Returns the y below.
+// from the bottom by the column's mean charge, a --selected dot where it runs empty). The card's
+// time is a column of --regolith dots. Returns the y below.
 function strip(g: G, a: Analysis, i: number, x: number, y: number, w: number): number {
   const PITCH = 4, R = 1.64, ROWS = 5, LABEL = 96, GAP = 10;
-  caption(g, "Over the window", x, y);
-  y += 34;
   const n = a.times.length, cols = Math.floor((w - LABEL) / PITCH);
   const here = Math.min(cols - 1, Math.floor((i / n) * cols));
   const bands: [string, string, (k: number) => boolean][] = [
@@ -256,12 +223,9 @@ function strip(g: G, a: Analysis, i: number, x: number, y: number, w: number): n
     const add = (t: string) => (paths[t] ??= new Path2D());
     for (let col = 0; col < cols; col++) {
       const s = Math.floor((col / cols) * n), e = Math.max(s + 1, Math.floor(((col + 1) / cols) * n));
-      let count = 0, eclipse = false;
-      for (let k = s; k < e; k++) {
-        if (on(k)) count++;
-        if (b === 0 && a.sun.behindEarth[k] > 0) eclipse = true;
-      }
-      const t = col === here ? "--regolith" : eclipse ? "--selected" : count / (e - s) >= 0.5 ? tok : "--ash-dim";
+      let count = 0;
+      for (let k = s; k < e; k++) if (on(k)) count++;
+      const t = col === here ? "--regolith" : count / (e - s) >= 0.5 ? tok : "--ash-dim";
       const p = add(t), px = x + LABEL + col * PITCH + PITCH / 2;
       for (let r = 0; r < ROWS; r++) {
         const py = top + r * PITCH + PITCH / 2;
@@ -382,5 +346,4 @@ const smoothstep = (a: number, b: number, v: number) => {
   const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
-const signed = (v: number) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2) + "°";
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");

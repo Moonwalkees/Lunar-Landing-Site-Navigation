@@ -8,6 +8,10 @@ import type { MissionWindow } from "./data";
 //   solar, batt, use     the rover's three numbers (W, Wh, W)
 //   t                    the time step
 // BoardApp reads them once at load, then takes them out of the address bar.
+//
+// The link always points at the hosted app, never at the address this page happens to be open on
+// (localhost while developing), since a card is made to be shared. VITE_PUBLIC_URL overrides it.
+const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || "https://space.universal-approximation.com/";
 
 const KEYS = ["site", "lat", "lon", "start", "days", "step", "solar", "batt", "use", "t"];
 
@@ -19,9 +23,7 @@ export interface Shared {
 }
 
 export function shareUrl(site: { name: string; lat: number; lon: number }, win: MissionWindow, t: number): string {
-  const u = new URL(window.location.href);
-  u.search = "";
-  u.hash = "";
+  const u = new URL(PUBLIC_URL);
   const p = u.searchParams;
   p.set("ui", "board");
   p.set("site", site.name);

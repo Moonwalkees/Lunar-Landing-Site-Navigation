@@ -66,7 +66,7 @@ export default function MissionCard({ site, analysis, index, win, grid, onClose 
           {png ? <img src={png} alt={"Mission card for " + site.name} /> : <div className="mono">{analysis ? "Drawing…" : "Waiting for this site's analysis…"}</div>}
         </div>
         <label className="field mcard-link">
-          <span className="mono">Link · opens this site, window, rover and time</span>
+          <span className="mono">Link</span>
           <input ref={linkBox} readOnly value={url} onFocus={(e) => e.target.select()} />
         </label>
         <div className="mcard-btns">
