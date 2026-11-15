@@ -10,6 +10,7 @@ import {
 import Detail3D from "./Detail3D";
 import { DEFAULT_ROVER } from "../rovers";
 import { terrainTileFor } from "../terrain";
+import { clearSaved, loadBoard, saveBoard } from "../persist";
 import DotChart from "./DotChart";
 import HeroMap, { type MapPin } from "./HeroMap";
 import UiSwitch from "../UiSwitch";
@@ -22,12 +23,15 @@ const today = new Date().toISOString().slice(0, 10);
 // The dot-matrix departure board (doc/style.md). Every preset is analysed for the same window,
 // so the board ranks them side by side; one shared time index drives every panel.
 export default function BoardApp() {
+  // What the user set up last visit (src/persist.ts); read once, then every change below is saved back.
+  const [saved] = useState(loadBoard);
+
   // ---- sites ----
   const [presets, setPresets] = useState<BoardSite[]>([presetSite(FALLBACK_SITE)]);
   const [sitesError, setSitesError] = useState<string | null>(null);
-  const [customs, setCustoms] = useState<BoardSite[]>([]);
-  const [selectedId, setSelectedId] = useState(presetSite(FALLBACK_SITE).id);
-  const touched = useRef(false); // has the user picked a site yet?
+  const [customs, setCustoms] = useState<BoardSite[]>(saved.customs);
+  const [selectedId, setSelectedId] = useState(saved.selectedId ?? presetSite(FALLBACK_SITE).id);
+  const touched = useRef(saved.selectedId !== undefined); // has the user picked a site yet?
 
   useEffect(() => {
     let cancelled = false;
@@ -41,12 +45,18 @@ export default function BoardApp() {
     return () => { cancelled = true; };
   }, []);
 
-  const [hidden, setHidden] = useState<Set<string>>(new Set()); // presets deleted from the board
-  const sites = useMemo(() => [...presets.filter((p) => !hidden.has(p.id)), ...customs], [presets, customs, hidden]);
+  const [hidden, setHidden] = useState<Set<string>>(new Set(saved.hidden)); // presets deleted from the board
+  // The board always needs a site: saved deletions that would empty it (say, the only preset shown
+  // before GET /sites answers) are ignored until there is something else to show.
+  const sites = useMemo(() => {
+    const shown = [...presets.filter((p) => !hidden.has(p.id)), ...customs];
+    return shown.length > 0 ? shown : presets;
+  }, [presets, customs, hidden]);
 
   // ---- analyses: one per site for the shared window ----
   // A year by default, so Play runs through every season. 2 h steps keep the five analyses to a few seconds.
-  const [win, setWin] = useState<MissionWindow>({ startDate: today, days: 365, stepHours: 2, rover: DEFAULT_ROVER });
+  const [win, setWin] = useState<MissionWindow>(saved.win ?? { startDate: today, days: 365, stepHours: 2, rover: DEFAULT_ROVER });
+  const winRun = useRef(saved.win !== undefined); // only a window the user ran is saved, so the default start stays "today"
   const [results, setResults] = useState<Record<string, SiteResult>>({});
   const asked = useRef(new Map<string, string>()); // site id -> key already requested
 
@@ -76,7 +86,7 @@ export default function BoardApp() {
   const index = Math.min(timeIndex, maxIndex);
 
   // ---- rows ----
-  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey ?? "score");
   const rows: Row[] = sites.map((site) => {
     const result = results[site.id];
     const analysis = result?.status === "ready" && result.key === resultKey(site, win) ? result.analysis : null;
@@ -115,6 +125,19 @@ export default function BoardApp() {
     }
   }, []);
   const closeDetail = useCallback(() => setOpen3D(false), []);
+
+  // Save the setup whenever it changes. The selection is saved only once the user has picked a site,
+  // so the backend's default site is not frozen in before they choose.
+  useEffect(() => {
+    saveBoard({
+      customs,
+      hidden: [...hidden],
+      win: winRun.current ? win : undefined,
+      selectedId: touched.current ? selectedId : undefined,
+      sortKey,
+    });
+  }, [customs, hidden, win, selectedId, sortKey]);
+  const resetSaved = () => { clearSaved(); location.reload(); };
 
   const [adding, setAdding] = useState(false);
   const addCustom = (s: { name: string; lat: number; lon: number }) => {
@@ -222,7 +245,7 @@ export default function BoardApp() {
 
       <div className="wrap">
         <Lamps states={rows.flatMap((r) => (r.state ? [r.state] : []))} />
-        <Mission win={win} onWindow={(w) => { setWin(w); setTimeIndex(0); }} />
+        <Mission win={win} onWindow={(w) => { winRun.current = true; setWin(w); setTimeIndex(0); }} onReset={resetSaved} />
         <div className="main">
           <Board
             rows={ranked}
