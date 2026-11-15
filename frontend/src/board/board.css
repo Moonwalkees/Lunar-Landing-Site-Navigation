@@ -267,6 +267,9 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .u3d .terrain-stage canvas.terrain-map { cursor: grab; }
 .u3d .terrain-stage canvas.terrain-map:active { cursor: grabbing; }
 .u3d .terrain-readout { position: absolute; top: 8px; right: 8px; pointer-events: none; font: 400 11px var(--font-mono); letter-spacing: .08em; color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); padding: 2px 6px; }
+.u3d .terrain-legend { position: absolute; right: 8px; bottom: 8px; width: 230px; max-width: calc(100% - 16px); pointer-events: none; font: 400 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--regolith); background: var(--space); border: 1px solid var(--ash-dim); padding: 6px 8px; }
+.u3d .terrain-legend-bar { height: 8px; margin: 5px 0 3px; background-color: #6b6b6b; }
+.u3d .terrain-legend-ends { display: flex; justify-content: space-between; color: var(--ash); }
 .u3d .terrain-hint { margin: 0; font: 400 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
 
 @media (prefers-reduced-motion: reduce) { .alert { animation: none; } html, body, .console, .dock, body::before { transition: none; } html.los body::before { animation: none; } }

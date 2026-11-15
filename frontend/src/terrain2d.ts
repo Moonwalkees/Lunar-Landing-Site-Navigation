@@ -268,6 +268,18 @@ const SHADOW = [[8, 10, 24], [84, 98, 146]]; // deep cool blue, relief still rea
 // the map from showing 100 m squares and staircase shadow edges when zoomed in.
 export const UPSAMPLE = 2;
 
+// Grid cell and bilinear weight for each image row / column (the same for both axes).
+function upsampleAxis(n: number): { cell: Int32Array; frac: Float32Array } {
+  const m = n * UPSAMPLE;
+  const cell = new Int32Array(m), frac = new Float32Array(m);
+  for (let p = 0; p < m; p++) {
+    const g = Math.min(n - 1, Math.max(0, (p + 0.5) / UPSAMPLE - 0.5));
+    cell[p] = Math.min(n - 2, Math.floor(g));
+    frac[p] = g - cell[p];
+  }
+  return { cell, frac };
+}
+
 // RGBA pixels for the map, UPSAMPLE x the grid's size: relief times ambient occlusion, warm where
 // the Sun reaches and deep blue where it doesn't. `lit` is null when the Sun's position isn't known
 // yet; the relief is then shown in neutral grey. Values between cells are interpolated bilinearly,
@@ -277,13 +289,7 @@ export function paint(shade: Float32Array, ao: Float32Array, lit: Float32Array |
   const m = n * UPSAMPLE;
   const image = new ImageData(m, m);
   const px = image.data;
-  // Grid coordinate and blend weight for each image row / column (the same for both axes).
-  const cell = new Int32Array(m), frac = new Float32Array(m);
-  for (let p = 0; p < m; p++) {
-    const g = Math.min(n - 1, Math.max(0, (p + 0.5) / UPSAMPLE - 0.5));
-    cell[p] = Math.min(n - 2, Math.floor(g));
-    frac[p] = g - cell[p];
-  }
+  const { cell, frac } = upsampleAxis(n);
   // Brightness per cell (relief times occlusion), interpolated per pixel below.
   const bright = new Float32Array(n * n);
   for (let k = 0; k < bright.length; k++) bright[k] = shade[k] * ao[k];
@@ -317,4 +323,49 @@ export function paint(shade: Float32Array, ao: Float32Array, lit: Float32Array |
     }
   }
   return image;
+}
+
+// Forecast overlay colours (ticket 7.8): a diverging pair, checked for colour-blind separation.
+// No change is transparent, so the terrain itself is the neutral midpoint.
+export const DELTA_LOSS = [240, 89, 94]; // #f0595e
+export const DELTA_GAIN = [51, 136, 238]; // #3388ee
+export const DELTA_DEADBAND = 0.02; // |Δ| at or below this stays clear, so noise doesn't tint the map
+
+// Overlay strength, 0 to 1, for a change `d` in -1..1: 0 inside the dead-band, a short fade-in so
+// edges aren't hard, then rising with |d|. Small changes start at 35% so they are still visible.
+export function deltaAlpha(d: number): number {
+  const a = Math.abs(d);
+  if (a <= DELTA_DEADBAND) return 0;
+  const fade = Math.min(1, (a - DELTA_DEADBAND) / 0.06);
+  return fade * (0.35 + 0.65 * Math.min(1, a));
+}
+
+// The map image with a change field (-1 to 1 per grid cell) blended over it: DELTA_LOSS where the
+// value falls, DELTA_GAIN where it rises. The base is first turned grey, so colour only ever means
+// change and the map's own warm / blue tints can't be mistaken for it. Returns a new image.
+export function paintDelta(base: ImageData, delta: Float32Array, opacity = 0.8): ImageData {
+  const n = Math.round(Math.sqrt(delta.length));
+  const m = base.width;
+  const out = new ImageData(m, m);
+  const src = base.data, px = out.data;
+  const { cell, frac } = upsampleAxis(n);
+  let o = 0;
+  for (let y = 0; y < m; y++) {
+    const row = cell[y] * n, fy = frac[y];
+    for (let x = 0; x < m; x++) {
+      const k = row + cell[x], fx = frac[x];
+      const d =
+        (delta[k] * (1 - fx) + delta[k + 1] * fx) * (1 - fy) +
+        (delta[k + n] * (1 - fx) + delta[k + n + 1] * fx) * fy;
+      const grey = 0.299 * src[o] + 0.587 * src[o + 1] + 0.114 * src[o + 2];
+      const a = opacity * deltaAlpha(d);
+      const c = d < 0 ? DELTA_LOSS : DELTA_GAIN;
+      px[o] = grey + (c[0] - grey) * a;
+      px[o + 1] = grey + (c[1] - grey) * a;
+      px[o + 2] = grey + (c[2] - grey) * a;
+      px[o + 3] = 255;
+      o += 4;
+    }
+  }
+  return out;
 }
