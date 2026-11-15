@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Metrics } from "../types";
 import { stamp, type MissionWindow, type State } from "./data";
 
@@ -173,19 +173,43 @@ const SPEEDS = [
 
 export function TimeDock({ timeIndex, maxIndex, cellSteps, time, enabled, onScrub }: DockProps) {
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1); // index into SPEEDS, default 1 day a second
+  const [speed, setSpeed] = useState(3); // index into SPEEDS, default 10 days a second: the default year plays in about 36 s
   const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Play advances in whole 6 h cells, in hard steps, wrapping at the end. Faster speeds jump more
-  // cells per tick rather than ticking faster than 4 times a second (1 a second with reduced motion).
+  // Play runs every frame and moves one analysis step at a time, so the Sun, the shadows and the
+  // scrubber flow as they do in the classic UI, and wraps at the end. With reduced motion it keeps
+  // to one jump a second, in whole 6 h cells.
   const h = SPEEDS[speed].hours;
-  const tickMs = reduce ? 1000 : Math.max(250, 6000 / h);
-  const jump = Math.max(1, Math.round((h * tickMs) / 1000 / 6)) * cellSteps;
+  const stepsPerSecond = (h * cellSteps) / 6; // cellSteps is the number of steps in 6 h
+  const live = useRef({ timeIndex, maxIndex, onScrub, stepsPerSecond });
+  live.current = { timeIndex, maxIndex, onScrub, stepsPerSecond };
   useEffect(() => {
     if (!playing || !enabled) return;
-    const t = setInterval(() => onScrub(timeIndex >= maxIndex ? 0 : Math.min(maxIndex, timeIndex + jump)), tickMs);
-    return () => clearInterval(t);
-  }, [playing, enabled, timeIndex, jump, tickMs, maxIndex, onScrub]);
+    if (reduce) {
+      const jump = Math.max(1, Math.round(h / 6)) * cellSteps;
+      const t = setInterval(() => {
+        const s = live.current;
+        s.onScrub(s.timeIndex >= s.maxIndex ? 0 : Math.min(s.maxIndex, s.timeIndex + jump));
+      }, 1000);
+      return () => clearInterval(t);
+    }
+    let frame = 0;
+    let last = performance.now();
+    let position = live.current.timeIndex;
+    const tick = (now: number) => {
+      const s = live.current;
+      if (Math.abs(s.timeIndex - Math.floor(position)) > 1) position = s.timeIndex; // moved by something else
+      // The first frame's timestamp can be a little earlier than the moment Play was pressed.
+      position += s.stepsPerSecond * Math.min(Math.max((now - last) / 1000, 0), 0.1);
+      last = now;
+      if (position > s.maxIndex) position = 0;
+      const next = Math.floor(position);
+      if (next !== s.timeIndex) s.onScrub(next);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [playing, enabled, reduce, h, cellSteps]);
 
   const nudge = (d: number) => { setPlaying(false); onScrub(Math.max(0, Math.min(maxIndex, timeIndex + d * cellSteps))); };
 

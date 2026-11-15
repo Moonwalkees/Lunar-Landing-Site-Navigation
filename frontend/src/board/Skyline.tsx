@@ -33,11 +33,14 @@ export default function Skyline({ analysis, timeIndex }: Props) {
 
   const i = analysis ? Math.min(timeIndex, analysis.times.length - 1) : 0;
 
+  // The terrain and the two tracks don't change with time, and they are over 20,000 dots, so they
+  // are drawn once here, off screen. Each time step copies that and adds the Sun and Earth discs.
+  const still = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
-    const el = cv.current;
-    if (!el || !w || !analysis || !range) return;
-    const h = ROWS * PITCH;
-    const g = prepare(el, w, h);
+    still.current = null;
+    if (!w || !analysis || !range) return;
+    const off = document.createElement("canvas");
+    const g = prepare(off, w, ROWS * PITCH);
     const cols = Math.floor(w / PITCH), x0 = (w - cols * PITCH) / 2;
     const rowOf = (e: number) => Math.round(((range.hi - e) / (range.hi - range.lo)) * (ROWS - 1));
     const colOf = (az: number) => Math.min(cols - 1, Math.max(0, Math.floor((((az % 360) + 360) % 360) / 360 * cols)));
@@ -65,6 +68,20 @@ export default function Skyline({ analysis, timeIndex }: Props) {
     };
     track(analysis.earth.az, analysis.earth.el, C.earth);
     track(analysis.sun.az, analysis.sun.el, C.sun);
+    still.current = off;
+  }, [analysis, range, w]);
+
+  useEffect(() => {
+    const el = cv.current, off = still.current;
+    if (!el || !w || !analysis || !range || !off) return;
+    const h = ROWS * PITCH;
+    const g = prepare(el, w, h);
+    g.drawImage(off, 0, 0, w, h);
+    const cols = Math.floor(w / PITCH), x0 = (w - cols * PITCH) / 2;
+    const rowOf = (e: number) => Math.round(((range.hi - e) / (range.hi - range.lo)) * (ROWS - 1));
+    const colOf = (az: number) => Math.min(cols - 1, Math.max(0, Math.floor((((az % 360) + 360) % 360) / 360 * cols)));
+    const X = (c: number) => x0 + c * PITCH + PITCH / 2, Y = (r: number) => r * PITCH + PITCH / 2;
+    const C = { sun: color("--sun"), earth: color("--earth") };
 
     // Positions now, never dithered: a solid disc when the body is visible, a hollow ring when
     // it's hidden. Visibility matches the backend metrics (Sun lit: fraction > 0; Earth linked: margin >= 0).

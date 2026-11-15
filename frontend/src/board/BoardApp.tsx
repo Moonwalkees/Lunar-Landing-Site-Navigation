@@ -43,7 +43,8 @@ export default function BoardApp() {
   const sites = useMemo(() => [...presets.filter((p) => !hidden.has(p.id)), ...customs], [presets, customs, hidden]);
 
   // ---- analyses: one per site for the shared window ----
-  const [win, setWin] = useState<MissionWindow>({ startDate: today, days: 29.5, stepHours: 1 });
+  // A year by default, so Play runs through every season. 2 h steps keep the five analyses to a few seconds.
+  const [win, setWin] = useState<MissionWindow>({ startDate: today, days: 365, stepHours: 2 });
   const [results, setResults] = useState<Record<string, SiteResult>>({});
   const asked = useRef(new Map<string, string>()); // site id -> key already requested
 
@@ -236,7 +237,10 @@ export default function BoardApp() {
         </div>
       </div>
 
-      {open3D && <Detail3D name={sel.name} lat={sel.lat} lon={sel.lon} sun={sun} earth={earth} onClose={closeDetail} />}
+      {open3D && (
+        <Detail3D name={sel.name} lat={sel.lat} lon={sel.lon} sun={sun} earth={earth}
+          analysis={a ?? null} index={ai} onClose={closeDetail} />
+      )}
 
       <TimeDock
         timeIndex={index}

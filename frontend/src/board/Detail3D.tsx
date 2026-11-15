@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import TerrainMap from "../components/TerrainMap";
 import type { SkyPosition, View3D } from "../components/TerrainView3D";
+import type { Analysis } from "../types";
+import RoverPanel from "./RoverPanel";
 
 // The Unity build (55 MB, doc/3d-view.md) only loads once the user picks surface or orbit.
 const TerrainView3D = lazy(() => import("../components/TerrainView3D"));
@@ -11,6 +13,9 @@ interface Props {
   lon: number;
   sun: SkyPosition | null;
   earth: SkyPosition | null;
+  // The selected site's analysis and the scrub step, for the rover readout; null until it has loaded.
+  analysis: Analysis | null;
+  index: number;
   onClose: () => void;
 }
 
@@ -26,7 +31,7 @@ const VIEWS: { id: View; label: string }[] = [
 // still moves the Sun and Earth. Tabs run 2D MAP, ORBIT, SURFACE and open on the Unity orbit view;
 // 2D MAP is the bird's-eye map (doc/2d-view.md) with its pan / zoom / height readout.
 // Agreed with the user: the dot-matrix dither is for the overview map only; these are unfiltered.
-export default function Detail3D({ name, lat, lon, sun, earth, onClose }: Props) {
+export default function Detail3D({ name, lat, lon, sun, earth, analysis, index, onClose }: Props) {
   const [view, setView] = useState<View>("orbit");
 
   useEffect(() => {
@@ -51,6 +56,7 @@ export default function Detail3D({ name, lat, lon, sun, earth, onClose }: Props)
         <button className="cbtn" onClick={onClose}>CLOSE</button>
       </div>
       <div className="u3d-body">
+        {analysis && <RoverPanel analysis={analysis} index={index} low={view === "birdseye"} />}
         {view === "birdseye" ? (
           <TerrainMap lat={lat} lon={lon} sun={sun} earth={earth} viewButtons={viewButtons} />
         ) : (

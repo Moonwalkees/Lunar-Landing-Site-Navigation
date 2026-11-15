@@ -216,7 +216,26 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
   padding: 12px var(--gutter-r) 12px var(--gutter-l); gap: 10px; }
 .u3d-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 .u3d-head .nm { font-weight: 900; font-size: 28px; line-height: 1; color: var(--selected); text-transform: uppercase; }
-.u3d-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.u3d-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+/* Rover readout over the detail views (RoverPanel.tsx). Status word and values change in hard steps. */
+.rover-panel { position: absolute; top: 8px; right: 8px; z-index: 2; width: 264px; max-width: calc(100% - 16px); pointer-events: none;
+  background: color-mix(in srgb, var(--space) 88%, transparent); border: 1px solid var(--ash-dim); padding: 8px 10px 9px; display: grid; gap: 6px; }
+.rover-panel.low { top: 40px; }
+.rover-panel .word { font-weight: 900; font-size: 24px; line-height: 1; letter-spacing: .02em; color: var(--regolith); }
+.rover-panel.charging .word, .rover-panel.full .word { color: var(--ok); }
+.rover-panel.battery .word { color: var(--sun); }
+.rover-panel.empty .word { color: var(--selected); }
+.rover-panel .rk { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rover-panel .rk div { border-top: 1px solid var(--ash-dim); padding-top: 4px; }
+.rover-panel .rk b { display: block; font-weight: 800; font-size: 18px; line-height: 1.1; margin-top: 2px; white-space: nowrap; }
+.rover-panel .rk .s { color: var(--sun); } .rover-panel .rk .e { color: var(--earth); }
+.rover-panel .rk .off { color: var(--ash); font-weight: 300; }
+.rover-panel .cells { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+.rover-panel .cells i { height: 8px; background: var(--ash-dim); }
+.rover-panel .cells i.on { background: var(--regolith); }
+.rover-panel.charging .cells i.on, .rover-panel.full .cells i.on { background: var(--ok); }
+.rover-panel.battery .cells i.on { background: var(--sun); }
+@media (max-width: 720px) { .rover-panel { width: 212px; padding: 6px 8px; gap: 4px; } .rover-panel .word { font-size: 20px; } }
 .u3d .terrain-stage { position: relative; flex: 1; min-height: 0; width: 100%; background: #000; border: 1px solid var(--ash-dim); overflow: hidden; }
 .u3d .terrain-stage canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
 .u3d .terrain-note { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px;

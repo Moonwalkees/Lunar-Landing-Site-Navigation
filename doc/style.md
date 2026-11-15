@@ -131,8 +131,8 @@ Site name in `--selected` Doto 900, a small mono `LAT … · LON …°E` line, t
 Three bands over the window (sun, Earth, both) in 6-hour cells. Unlit dots stay faintly visible as an unlit display. The scrub position is a column of `--regolith` dots. Dragging on the chart scrubs time.
 
 ### Time dock
-- Back and forward step one 6-hour cell. Play steps automatically in whole cells.
-- A SPEED button cycles 6H/S, 1D/S (default), 4D/S, 10D/S of mission time per second. Faster speeds jump more cells per tick, never more than 4 ticks a second.
+- Back and forward step one 6-hour cell. Play moves one analysis step at a time, every frame, so time flows as it does in the classic UI (with reduced motion: one jump a second, in whole cells).
+- A SPEED button cycles 6H/S, 1D/S, 4D/S, 10D/S (default) of mission time per second. The board opens on a 365-day window at 2 h steps, which plays through in about 36 s at the default speed. Faster speeds cover more steps per frame.
 - The scrubber is a full-width range with a dotted track and a block thumb at least 44 px tall.
 - All buttons are at least 56 px square on the dock.
 

@@ -65,19 +65,22 @@ export default function DotChart({ analysis, timeIndex, maxIndex, onScrub }: Pro
   const maxP = cells ? Math.max(1, ...cells.power) : 1;
   const maxB = cells ? Math.max(1, ...cells.battery) : 1;
 
+  // The bands don't change with time, and they are some 17,000 dots: drawing them on every time
+  // step is what held playback to about ten updates a second. They are drawn once here, off screen,
+  // and each step copies that and adds the cursor column.
+  const bands = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
-    const el = cv.current;
-    if (!el || !w || !cells) return;
-    const g = prepare(el, w, ROWS * PITCH);
+    bands.current = null;
+    if (!w || !cells) return;
+    const off = document.createElement("canvas");
+    const g = prepare(off, w, ROWS * PITCH);
     const N = cells.sun.length, cols = Math.floor(w / PITCH), x0 = (w - cols * PITCH) / 2;
-    const cur = Math.min(cols - 1, Math.floor(((Math.floor(timeIndex / cells.steps) + 0.5) / N) * cols));
     const C = { sun: color("--sun"), earth: color("--earth"), ok: color("--ok"), reg: color("--regolith"), dim: color("--ash-dim") };
     for (let i = 0; i < cols; i++) {
       const c = Math.min(N - 1, Math.floor((i / cols) * N)), x = x0 + i * PITCH + PITCH / 2;
       for (const b of BANDS) {
         for (let r = 0; r < b.h; r++) {
           const y = (b.r0 + r) * PITCH + PITCH / 2;
-          if (i === cur) { dot(g, x, y, C.reg); continue; }
           let on: boolean, fill: string;
           if (b.key === "power") { on = b.h - r <= Math.round((cells.power[c] / maxP) * b.h); fill = C.sun; }
           else if (b.key === "battery") { on = b.h - r <= Math.round((cells.battery[c] / maxB) * b.h); fill = C.reg; }
@@ -86,6 +89,19 @@ export default function DotChart({ analysis, timeIndex, maxIndex, onScrub }: Pro
         }
       }
     }
+    bands.current = off;
+  }, [cells, w, maxP, maxB]);
+
+  useEffect(() => {
+    const el = cv.current, off = bands.current;
+    if (!el || !w || !cells || !off) return;
+    const h = ROWS * PITCH;
+    const g = prepare(el, w, h);
+    g.drawImage(off, 0, 0, w, h);
+    const N = cells.sun.length, cols = Math.floor(w / PITCH), x0 = (w - cols * PITCH) / 2;
+    const cur = Math.min(cols - 1, Math.floor(((Math.floor(timeIndex / cells.steps) + 0.5) / N) * cols));
+    const x = x0 + cur * PITCH + PITCH / 2, reg = color("--regolith");
+    for (const b of BANDS) for (let r = 0; r < b.h; r++) dot(g, x, (b.r0 + r) * PITCH + PITCH / 2, reg);
     g.globalAlpha = 1;
   }, [cells, w, timeIndex, maxP, maxB]);
 
