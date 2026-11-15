@@ -36,6 +36,7 @@ Single dark theme by choice. Define as CSS custom properties on `:root` and set 
 | `--ash` | `#8C867A` | Half-lit dots, labels, ghosted values |
 | `--ash-dim` | `#3A3832` | Unlit dots, hairlines, grid |
 | `--sun` | `#FFB43B` | Power / sunlight data |
+| `--power` | `#F2D48A` | Power band on the site chart: a paler `--sun`, so the two read apart |
 | `--earth` | `#2FB5C4` | Earth link / comms data |
 | `--ok` | `#7BD66B` | Sun and Earth both available (board status, "both" series) |
 | `--selected` | `#FF5A36` | The selected site |

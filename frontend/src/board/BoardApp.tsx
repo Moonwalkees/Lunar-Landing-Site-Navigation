@@ -245,7 +245,7 @@ export default function BoardApp() {
 
       {open3D && (
         <Detail3D name={sel.name} lat={sel.lat} lon={sel.lon} sun={sun} earth={earth}
-          analysis={a ?? null} index={ai} onClose={closeDetail} />
+          analysis={a ?? null} index={ai} onScrub={setTimeIndex} onClose={closeDetail} />
       )}
 
       <TimeDock

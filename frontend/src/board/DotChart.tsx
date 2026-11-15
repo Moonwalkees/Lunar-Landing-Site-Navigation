@@ -76,14 +76,14 @@ export default function DotChart({ analysis, timeIndex, maxIndex, onScrub }: Pro
     const off = document.createElement("canvas");
     const g = prepare(off, w, ROWS * PITCH);
     const N = cells.sun.length, cols = Math.floor(w / PITCH), x0 = (w - cols * PITCH) / 2;
-    const C = { sun: color("--sun"), earth: color("--earth"), ok: color("--ok"), reg: color("--regolith"), dim: color("--ash-dim") };
+    const C = { sun: color("--sun"), power: color("--power"), earth: color("--earth"), ok: color("--ok"), reg: color("--regolith"), dim: color("--ash-dim") };
     for (let i = 0; i < cols; i++) {
       const c = Math.min(N - 1, Math.floor((i / cols) * N)), x = x0 + i * PITCH + PITCH / 2;
       for (const b of BANDS) {
         for (let r = 0; r < b.h; r++) {
           const y = (b.r0 + r) * PITCH + PITCH / 2;
           let on: boolean, fill: string;
-          if (b.key === "power") { on = b.h - r <= Math.round((cells.power[c] / maxP) * b.h); fill = C.sun; }
+          if (b.key === "power") { on = b.h - r <= Math.round((cells.power[c] / maxP) * b.h); fill = C.power; }
           else if (b.key === "battery") { on = b.h - r <= Math.round((cells.battery[c] / maxB) * b.h); fill = C.reg; }
           else { on = cells[b.key][c]; fill = b.key === "sun" ? C.sun : b.key === "earth" ? C.earth : C.ok; }
           dot(g, x, y, on ? fill : C.dim, on ? 1 : 0.55);
@@ -151,7 +151,7 @@ export default function DotChart({ analysis, timeIndex, maxIndex, onScrub }: Pro
             <span><i style={{ background: "var(--sun)" }} />SUN</span>
             <span><i style={{ background: "var(--earth)" }} />EARTH</span>
             <span><i style={{ background: "var(--ok)" }} />BOTH</span>
-            <span><i style={{ background: "var(--sun)" }} />POWER<small>0–{Math.round(maxP)} W</small></span>
+            <span><i style={{ background: "var(--power)" }} />POWER<small>0–{Math.round(maxP)} W</small></span>
             <span><i style={{ background: "var(--regolith)" }} />BATT<small>0–{Math.round(maxB)} Wh</small></span>
             <span><i style={{ background: "var(--selected)" }} />ECLIPSE</span>
           </div>

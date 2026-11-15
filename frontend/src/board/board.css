@@ -7,6 +7,7 @@
   --ash: #8C867A;
   --ash-dim: #3A3832;
   --sun: #FFB43B;
+  --power: #F2D48A; /* power band: a paler sun, so SUN and POWER read apart */
   --earth: #2FB5C4;
   --ok: #7BD66B;
   --selected: #FF5A36;
@@ -167,6 +168,11 @@ h1 { margin: 0; font-weight: 900; font-size: clamp(26px, 4.2vw, 48px); line-heig
 .eclipse-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; color: var(--ash); }
 .eclipse-line.on { color: var(--selected); }
 .rover-panel .eclipse { color: var(--selected); }
+/* Eclipse in the 3D view (Detail3D.tsx): a badge while one is under way, and the jump button. */
+.eclipse-badge { position: absolute; top: 8px; left: 8px; z-index: 2; pointer-events: none; padding: 4px 8px;
+  font: 800 18px var(--font-dot); letter-spacing: .03em; color: var(--space); background: var(--selected); }
+.u3d .actions button.eclipse-go { color: var(--selected); border-color: var(--selected); }
+.u3d .actions button.eclipse-go:active { color: var(--space); background: var(--selected); }
 .empty { color: var(--ash); font-weight: 300; padding: 12px 0; }
 .compass { display: flex; justify-content: space-between; margin-top: 4px; }
 .readout { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-size: 18px; }
