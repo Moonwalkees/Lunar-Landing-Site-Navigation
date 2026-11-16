@@ -5,7 +5,7 @@ import "./board.css";
 
 // The dot-matrix board UI (doc/style.md), the app's only frontend (see main.tsx).
 export function mount(root: HTMLElement) {
-  document.title = "Lunar Site Board";
+  document.title = "Moonwalker's Wiki";
   // Doto wght 100-900 and Geist Mono 400/500 (doc/style.md > Type).
   for (const [rel, href, cross] of [
     ["preconnect", "https://fonts.googleapis.com", false],
