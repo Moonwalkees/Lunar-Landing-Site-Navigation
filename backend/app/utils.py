@@ -138,6 +138,11 @@ def comms_metrics(
 ) -> CommsMetrics:
     """Summarize Earth clearance, visibility, and the longest blackout."""
     margins = np.asarray(margin_radians, dtype=float)
+    # Handle one clearance value as a one-sample time series.
+    if margins.ndim == 0:
+        margins = margins.reshape(1)
+    elif margins.ndim != 1:
+        raise ValueError("margin_radians must be a scalar or one-dimensional time series")
     if margins.size == 0:
         raise ValueError("margin_radians must contain at least one value")
     if not 0 <= current_index < margins.size:
